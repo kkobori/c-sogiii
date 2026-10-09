@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <android/log.h>
 
 #include "../hsp3/hsp3config.h"
 
@@ -287,6 +288,7 @@ void hsp3eb_error( void )
 		sprintf( errmsg, "#Error %d in line %d (%s)\n-->%s\n",(int)err, ln, fname, msg );
 	}
 //	hsp3win_debugopen();
+	__android_log_print( ANDROID_LOG_ERROR, "HSPERR", "%s", errmsg );
 	hsp3eb_dialog( errmsg );
 }
 

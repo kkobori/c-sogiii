@@ -439,7 +439,9 @@ public class HspActivity extends NativeActivity {
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		CrashReporter.install(this);
 		super.onCreate(savedInstanceState);
+		CrashReporter.showIfAny(this);
 
 		View decor = getWindow().getDecorView();
 		// hide navigation bar, hide status bar. don't show navigation when tapped.
