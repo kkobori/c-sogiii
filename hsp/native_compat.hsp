@@ -1,0 +1,9 @@
+; ネイティブ(本家ランタイム)用の互換モジュール。ビルド時に main.hsp から自動で読み込まれる。
+; 本家の mmload は、ファイルが無いとエラーで止まるため、存在を確認してから読み込む。
+#module "nativecompat"
+#deffunc mmloadsafe str f, int n, int o
+	exist f
+	if strsize < 0 : return
+	mmload f, n, o
+	return
+#global

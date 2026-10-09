@@ -22,6 +22,7 @@ jobs:
       - name: HSP script -> C++ (same as HSP3Dish Helper)
         working-directory: hsp
         run: |
+          bash ../tools/native_patch.sh .
           ../hsptools/hspcmp -i -u --compath=../hsptools/common/ main.hsp
           ../hsptools/hsp3cnv -d main
           cp main.cpp ../android/app/jni/hsp3embed/hspsource.cpp
