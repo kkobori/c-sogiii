@@ -306,6 +306,11 @@ static int *code_getiv( void )
 	return (int *)HspVarCorePtrAPTR( pval, 0 );
 }
 
+#define CELBMP_MAX 64
+static char *celbmp_buf[CELBMP_MAX];
+static size_t celbmp_size[CELBMP_MAX];
+static int celbmp_mode[CELBMP_MAX];
+
 static int* code_getiv_sizecheck(int minsize)
 {
 	//		変数パラメーターを取得(int,PDATポインタ)(最低サイズを確認)
@@ -1476,6 +1481,16 @@ static int cmdfunc_extcmd( int cmd )
 		vptr = (char*)code_getiv_sizecheck(needsize);
 		p2 = code_getdi(0);
 		ctx->stat = bm2->BufferOp(p2, vptr);
+		//	アプリを裏に回すとGLテクスチャが消えるため、内容を控えておき復帰時に再転送する
+		if ( ( p2 == 0 || p2 == 1 ) && p1 >= 0 && p1 < CELBMP_MAX ) {
+			size_t bytes = (size_t)needsize * 4;
+			if ( celbmp_buf[p1] == NULL || celbmp_size[p1] != bytes ) {
+				free( celbmp_buf[p1] );
+				celbmp_buf[p1] = (char *)malloc( bytes );
+				celbmp_size[p1] = celbmp_buf[p1] ? bytes : 0;
+			}
+			if ( celbmp_buf[p1] ) { memcpy( celbmp_buf[p1], vptr, bytes ); celbmp_mode[p1] = p2; }
+		}
 		{	//	診断ログ(HSPDIAG): celbitmapの結果と、渡されたデータに中身があるか
 			static int diagcnt = 0;
 			if ( diagcnt++ < 8 ) {
@@ -4511,6 +4526,14 @@ void hsp3extcmd_resume( void )
 		mmman->Resume();
 	}
 	wnd->Resume();
+	//	celbitmapで転送済みの画面外バッファを復元する
+	for ( int k = 0; k < CELBMP_MAX; k++ ) {
+		if ( celbmp_buf[k] == NULL ) continue;
+		Bmscr *rb = wnd->GetBmscr( k );
+		if ( rb == NULL || rb->flag == BMSCR_FLAG_NOUSE ) continue;
+		if ( (size_t)rb->sx * rb->sy * 4 != celbmp_size[k] ) continue;
+		rb->BufferOp( celbmp_mode[k], celbmp_buf[k] );
+	}
 	bmscr = wnd->GetBmscr( 0 );
 	bmscr->Select(0);
 #endif

@@ -9,3 +9,8 @@ hsp/main.hsp (UTF-8) → hspcmp → .ax → hsp3cnv → hspsource.cpp → ndkBui
 アプリを一度落として、もう一度起動すると「前回の終了ログ」ダイアログが出ます。「コピー」で内容をクリップボードへ。
 - Java例外 / 終了理由(Android 11+: CRASH_NATIVE, ANR, LOW_MEMORY 等) / logcat末尾(HSPERR, Fatal signal 等)
 - HSPのエラー(`#Error N in line L`)は従来のダイアログに加え logcat タグ HSPERR にも出力
+
+## MML(::mmlt::) と hsp-synth
+`mmload "::mmlt::gdata/bgm/xxx.txt"` は、実行時に assets/hsp-synth.js(無改変)をWebViewで動かして合成し、WAVにして再生します。
+合成結果は cache に保存され、2回目以降は即再生。`$` の位置は OpenSL のループ開始位置に設定されます(非対応端末では先頭ループ)。
+tools/mml_render.js は同じ合成をPC/CIで書き出すための補助ツールです(通常は不要)。

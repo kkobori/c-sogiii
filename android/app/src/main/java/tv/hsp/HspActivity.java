@@ -100,6 +100,11 @@ public class HspActivity extends NativeActivity {
     return path;
   }
 
+  // MML(hsp-synth.js)をWAVに合成して "パス\tループ開始ms" を返す。失敗時は空文字
+  public String mmlRender( String assetPath ) {
+    return MmlSynth.render( this, assetPath );
+  }
+
   // Nativeへの通知
   public native void nativepoke(int val, int val2);
 

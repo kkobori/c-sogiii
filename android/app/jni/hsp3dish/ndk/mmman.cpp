@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
+#include <android/log.h>
 #include "../../hsp3/hsp3config.h"
 #include "../../hsp3/dpmread.h"
 #include "../../hsp3/strbuf.h"
@@ -53,6 +56,9 @@ typedef struct MMM
 	//
 	//
 	int pause_flag;
+
+	//	ループ開始位置(ms)  hsp-synthの'$'位置
+	int loop_ms;
 
 } MMM;
 
@@ -248,6 +254,7 @@ MMM *MMMan::SetBank( int num, int flag, int opt, void *mempt, char *fname )
 	m->vol = 0;
 	m->pan = 0;
 	m->fd = -1;
+	m->loop_ms = 0;
 	return m;
 }
 
@@ -365,7 +372,15 @@ void MMMan::SetLoopBank( MMM *mmm, int flag )
 {
 	if ( mmm == NULL ) return;
 	if (flag) {
-		(*mmm->playerSeek)->SetLoop(mmm->playerSeek, SL_BOOLEAN_TRUE, 0, SL_TIME_UNKNOWN);
+		SLresult lr = SL_RESULT_PARAMETER_INVALID;
+		if ( mmm->loop_ms > 0 ) {
+			//	途中からのループ(hsp-synthの'$')。非対応なら先頭ループにフォールバック
+			lr = (*mmm->playerSeek)->SetLoop(mmm->playerSeek, SL_BOOLEAN_TRUE, (SLmillisecond)mmm->loop_ms, SL_TIME_UNKNOWN);
+			__android_log_print( ANDROID_LOG_INFO, "HSPDIAG", "SetLoop start=%dms result=%d", mmm->loop_ms, (int)lr );
+		}
+		if ( lr != SL_RESULT_SUCCESS ) {
+			(*mmm->playerSeek)->SetLoop(mmm->playerSeek, SL_BOOLEAN_TRUE, 0, SL_TIME_UNKNOWN);
+		}
 	} else {
 		(*mmm->playerSeek)->SetLoop(mmm->playerSeek, SL_BOOLEAN_FALSE, 0, SL_TIME_UNKNOWN);
 	}
@@ -379,7 +394,7 @@ void MMMan::SeekBank( MMM *mmm, int pos, SLuint32 seekMode )
 }
 
 
-int MMMan::BankLoad( MMM *mmm, char *fname )
+int MMMan::BankLoad( MMM *mmm, char *fname, const char *filepath )
 {
 	SLresult result;
 	struct engine *en;
@@ -389,17 +404,27 @@ int MMMan::BankLoad( MMM *mmm, char *fname )
 	en = javafunc_engine();
 	//Alertf( "[MMMan] Start Loading %s [%x]",fname, en );
 
-	AAssetManager* mgr = en->app->activity->assetManager;
-	if (mgr == NULL) return -1;
-
-	AAsset* asset = AAssetManager_open(mgr, fname, AASSET_MODE_UNKNOWN);
-	if (asset == NULL) return -2;
-
-	// open asset as file descriptor
 	off_t start, length;
-	int fd = AAsset_openFileDescriptor(asset, &start, &length);
-	AAsset_close(asset);
-	if (fd < 0) return -3;
+	int fd;
+	if ( filepath != NULL ) {
+		//	通常ファイル(hsp-synthで合成したWAV)
+		fd = open( filepath, O_RDONLY );
+		if (fd < 0) return -3;
+		start = 0;
+		length = lseek( fd, 0, SEEK_END );
+		lseek( fd, 0, SEEK_SET );
+	} else {
+		AAssetManager* mgr = en->app->activity->assetManager;
+		if (mgr == NULL) return -1;
+
+		AAsset* asset = AAssetManager_open(mgr, fname, AASSET_MODE_UNKNOWN);
+		if (asset == NULL) return -2;
+
+		// open asset as file descriptor
+		fd = AAsset_openFileDescriptor(asset, &start, &length);
+		AAsset_close(asset);
+		if (fd < 0) return -3;
+	}
 
 	FileDescriptor fdWrapper(fd);
 
@@ -466,7 +491,30 @@ int MMMan::Load( char *fname, int num, int opt )
 	mmm = SetBank( num, flag, opt, NULL, fname );
 
 	if ( mmm != NULL ) {
-		res = BankLoad( mmm, fname );
+		const char *fpath = NULL;
+		char pathbuf[1024];
+		int is_mml = ( strncmp( fname, "::mmlt::", 8 ) == 0 );
+		if ( is_mml ) {
+			//	MML: Java側のhsp-synth.jsで合成 -> "WAVのパス<TAB>ループ開始ms"
+			char *r = j_mmlRender( fname + 8 );
+			char *tab = strchr( r, '\t' );
+			if ( r[0] == 0 || tab == NULL ) {
+				__android_log_print( ANDROID_LOG_ERROR, "HSPERR", "MML render failed: %s", fname );
+				mmm->flag = MMDATA_NONE;	//	鳴らないだけでスクリプトは止めない
+				return 0;
+			}
+			size_t n = (size_t)( tab - r );
+			if ( n >= sizeof(pathbuf) ) n = sizeof(pathbuf) - 1;
+			memcpy( pathbuf, r, n ); pathbuf[n] = 0;
+			mmm->loop_ms = atoi( tab + 1 );
+			fpath = pathbuf;
+		}
+		res = BankLoad( mmm, fname, fpath );
+		if ( res && is_mml ) {
+			__android_log_print( ANDROID_LOG_ERROR, "HSPERR", "MML load failed(%d): %s", res, fname );
+			mmm->flag = MMDATA_NONE;
+			return 0;
+		}
 		if ( res ) {
 			mmm->flag = MMDATA_NONE;
 			Alertf( "[MMMan] Failed %s on bank #%d (%d)",fname,num,res );

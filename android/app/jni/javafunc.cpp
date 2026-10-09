@@ -64,6 +64,41 @@ static char *jcall_void_str( const char *name ) {
 }
 
 
+static char *jcall_S_str( const char *name, const char *arg ) {
+	//	call JavaMethod ( String (String) )  戻り値は静的バッファ(空文字=失敗)
+	static char buf[1024];
+	JNIEnv* env;
+	buf[0] = 0;
+	m_vm->AttachCurrentThread(&env, NULL);
+	jclass clazz = env->GetObjectClass(m_engine->app->activity->clazz);
+	jmethodID methodj = env->GetMethodID(clazz, name, "(Ljava/lang/String;)Ljava/lang/String;");
+	if ( methodj != NULL ) {
+		jstring js = env->NewStringUTF(arg);
+		jstring r = (jstring)env->CallObjectMethod(m_engine->app->activity->clazz, methodj, js);
+		if ( env->ExceptionCheck() ) {
+			env->ExceptionClear();
+		} else if ( r != NULL ) {
+			const char *s = env->GetStringUTFChars(r, NULL);
+			if ( s ) { strncpy( buf, s, sizeof(buf) - 1 ); buf[sizeof(buf) - 1] = 0; env->ReleaseStringUTFChars(r, s); }
+			env->DeleteLocalRef(r);
+		}
+		env->DeleteLocalRef(js);
+	} else {
+		env->ExceptionClear();
+	}
+	env->DeleteLocalRef( clazz );
+	m_vm->DetachCurrentThread();
+	return buf;
+}
+
+
+char *j_mmlRender( const char *assetpath )
+{
+	//	MMLをhsp-synth.jsで合成してWAVにする(Java側)。"WAVのパス\tループ開始ms" を返す
+	return jcall_S_str( "mmlRender", assetpath );
+}
+
+
 static int jcall_int_int( const char *name, int val ) {
 	//	call JavaMethod ( int (int) )
     JNIEnv* env;
