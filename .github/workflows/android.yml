@@ -10,9 +10,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
-      - uses: android-actions/setup-android@v3
-      - name: Install NDK / platform
-        run: sdkmanager "ndk;26.3.11579264" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install Android NDK / platform (runner's preinstalled SDK)
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKM=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+          echo "sdkmanager: $SDKM"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "ndk;26.3.11579264" "platforms;android-35" "build-tools;34.0.0" "build-tools;35.0.0"
       - name: Build official HSP tools (hspcmp / hsp3cnv)
         run: ./tools/build_hsp_tools.sh ./hsptools
       - name: HSP script -> C++ (same as HSP3Dish Helper)
