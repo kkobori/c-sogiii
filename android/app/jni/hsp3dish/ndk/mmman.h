@@ -46,6 +46,7 @@ public:
 	void PauseBank( MMM *mmm );
 	void ResumeBank( MMM *mmm );
 	void SeekBank( MMM *mmm, int pos, SLuint32 seekMode );
+	void PauseByScript( MMM *mmm );
 	int BankLoad( MMM *mmm, char *fname, const char *filepath = NULL );
 	void SetLoopBank( MMM *mmm, int flag );
 

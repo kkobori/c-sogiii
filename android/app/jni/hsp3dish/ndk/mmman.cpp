@@ -60,6 +60,9 @@ typedef struct MMM
 	//	ループ開始位置(ms)  hsp-synthの'$'位置
 	int loop_ms;
 
+	//	スクリプトのmmstopで一時停止中(1=一時停止, mmplayで続きから再生)
+	int script_pause;
+
 } MMM;
 
 //---------------------------------------------------------------------------
@@ -172,7 +175,8 @@ void MMMan::DeleteBank( int bank )
 
 SLuint32 MMMan::GetState( MMM *mmm )
 {
-	SLuint32 state;
+	SLuint32 state = SL_PLAYSTATE_STOPPED;
+	if ( mmm == NULL || mmm->playerPlay == NULL ) return state;
 	(*mmm->playerPlay)->GetPlayState(mmm->playerPlay, &state);
 	return state;
 }
@@ -180,6 +184,7 @@ SLuint32 MMMan::GetState( MMM *mmm )
 
 void MMMan::SetState( MMM *mmm, SLuint32 state )
 {
+	if ( mmm == NULL || mmm->playerPlay == NULL ) return;
 	(*mmm->playerPlay)->SetPlayState(mmm->playerPlay, state);
 
 	SLresult result;
@@ -255,6 +260,12 @@ MMM *MMMan::SetBank( int num, int flag, int opt, void *mempt, char *fname )
 	m->pan = 0;
 	m->fd = -1;
 	m->loop_ms = 0;
+	m->script_pause = 0;
+	m->playerObject = NULL;
+	m->playerPlay = NULL;
+	m->playerSeek = NULL;
+	m->playerVolume = NULL;
+	m->prefetchItf = NULL;
 	return m;
 }
 
@@ -335,6 +346,7 @@ void MMMan::StopBank( MMM *mmm )
 	if ( mmm == NULL ) return;
 	SetState( mmm, SL_PLAYSTATE_STOPPED );
 	mmm->pause_flag = 0;
+	mmm->script_pause = 0;
 }
 
 
@@ -365,6 +377,7 @@ void MMMan::PlayBank( MMM *mmm )
 	SeekBank( mmm,  0, SL_SEEKMODE_FAST );
 	SetState( mmm, SL_PLAYSTATE_PLAYING );
 	mmm->pause_flag = 0;
+	mmm->script_pause = 0;
 }
 
 
@@ -389,7 +402,7 @@ void MMMan::SetLoopBank( MMM *mmm, int flag )
 
 void MMMan::SeekBank( MMM *mmm, int pos, SLuint32 seekMode )
 {
-	if ( mmm == NULL ) return;
+	if ( mmm == NULL || mmm->playerSeek == NULL ) return;
 	(*mmm->playerSeek)->SetPosition(mmm->playerSeek, pos, seekMode);
 }
 
@@ -536,7 +549,16 @@ int MMMan::Play( int num )
     bank = SearchBank(num);
     if ( bank < 0 ) return 1;
 	m = &(mem_snd[bank]);
-	if ( m->flag == MMDATA_INTWAVE ) PlayBank( m );
+	if ( m->flag == MMDATA_INTWAVE ) {
+		if ( m->script_pause && GetState( m ) == SL_PLAYSTATE_PAUSED ) {
+			//	mmstop(一時停止)後のmmplay: 続きから再生
+			SetState( m, SL_PLAYSTATE_PLAYING );
+			m->script_pause = 0;
+			m->pause_flag = 0;
+		} else {
+			PlayBank( m );
+		}
+	}
 	return 0;
 }
 
@@ -660,14 +682,25 @@ void MMMan::StopBank( int num )
 	//
     int bank;
 	MMM *m;
+	//	スクリプトの mmstop は「一時停止」として扱う(再生位置を保持。mmloadで先頭に戻る)
 	if ( num < 0 ) {
-		Stop();
+		for ( int a = 0; a < mm_cur; a++ ) PauseByScript( &(mem_snd[a]) );
 		return;
 	}
     bank = SearchBank(num);
     if ( bank < 0 ) return;
 	m = &(mem_snd[bank]);
-	StopBank( m );
+	PauseByScript( m );
+}
+
+
+void MMMan::PauseByScript( MMM *mmm )
+{
+	if ( mmm == NULL || mmm->flag != MMDATA_INTWAVE ) return;
+	if ( GetState( mmm ) == SL_PLAYSTATE_PLAYING ) {
+		SetState( mmm, SL_PLAYSTATE_PAUSED );
+		mmm->script_pause = 1;
+	}
 }
 
 

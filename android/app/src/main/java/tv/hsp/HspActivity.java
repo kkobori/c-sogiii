@@ -447,6 +447,7 @@ public class HspActivity extends NativeActivity {
 		CrashReporter.install(this);
 		super.onCreate(savedInstanceState);
 		CrashReporter.showIfAny(this);
+		MmlSynth.prewarm(this);
 
 		View decor = getWindow().getDecorView();
 		// hide navigation bar, hide status bar. don't show navigation when tapped.

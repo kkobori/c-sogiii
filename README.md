@@ -14,3 +14,9 @@ hsp/main.hsp (UTF-8) → hspcmp → .ax → hsp3cnv → hspsource.cpp → ndkBui
 `mmload "::mmlt::gdata/bgm/xxx.txt"` は、実行時に assets/hsp-synth.js(無改変)をWebViewで動かして合成し、WAVにして再生します。
 合成結果は cache に保存され、2回目以降は即再生。`$` の位置は OpenSL のループ開始位置に設定されます(非対応端末では先頭ループ)。
 tools/mml_render.js は同じ合成をPC/CIで書き出すための補助ツールです(通常は不要)。
+
+## mmstop / mmplay / mmload の挙動(自作インタプリタ準拠)
+- `mmstop` = 一時停止(再生位置を保持)。番号省略は全バンク
+- `mmplay` = 一時停止中なら続きから再生。それ以外は先頭から
+- `mmload` = 読み込み直し(再生位置は先頭に戻る)
+- アプリを裏に回して復帰したときは、一時停止していたバンクは停止のまま、再生中だったものだけ再開

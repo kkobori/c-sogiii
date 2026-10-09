@@ -77,6 +77,25 @@ public class MmlSynth {
         }
     }
 
+    /** 起動直後にバックグラウンドで assets/gdata/bgm 内のMMLを合成してキャッシュを作る(初回再生時の待ちを無くす) */
+    public static void prewarm(final Activity act) {
+        Thread t = new Thread(new Runnable() {
+            @Override public void run() {
+                try {
+                    String[] list = act.getAssets().list("gdata/bgm");
+                    if (list == null) return;
+                    java.util.Arrays.sort(list);
+                    for (String f : list) {
+                        if (f.endsWith(".txt")) render(act, "gdata/bgm/" + f);
+                    }
+                } catch (Throwable ignore) {
+                }
+            }
+        }, "MmlPrewarm");
+        t.setPriority(Thread.MIN_PRIORITY);
+        t.start();
+    }
+
     private static class Result {
         short[] pcm; int loopStart; int sampleRate;
     }
