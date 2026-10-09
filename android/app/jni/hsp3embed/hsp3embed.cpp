@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 #include <android/log.h>
 
 #include "../hsp3/hsp3config.h"
@@ -269,9 +270,18 @@ char *hsp3dish_getlog(void)
 #endif
 }
 
+static const char *trace_ring[8];
+static int trace_pos = 0;
+void hsp3eb_trace( const char *s )
+{
+	trace_ring[trace_pos] = s;
+	trace_pos = ( trace_pos + 1 ) & 7;
+}
+
 void hsp3eb_error( void )
 {
 	char errmsg[1024];
+	char tracemsg[1024];
 	char *msg;
 	char *fname;
 	HSPERROR err;
@@ -288,7 +298,21 @@ void hsp3eb_error( void )
 		sprintf( errmsg, "#Error %d in line %d (%s)\n-->%s\n",(int)err, ln, fname, msg );
 	}
 //	hsp3win_debugopen();
+	//	直前に実行した命令(古い順に最大6件)
+	tracemsg[0] = 0;
+	for ( int k = 6; k >= 1; k-- ) {
+		const char *t = trace_ring[( trace_pos - k ) & 7];
+		if ( t == NULL ) continue;
+		if ( strlen( tracemsg ) + strlen( t ) + 8 >= sizeof(tracemsg) ) break;
+		strcat( tracemsg, "\n  " );
+		strcat( tracemsg, t );
+	}
 	__android_log_print( ANDROID_LOG_ERROR, "HSPERR", "%s", errmsg );
+	__android_log_print( ANDROID_LOG_ERROR, "HSPERR", "last commands:%s", tracemsg );
+	if ( strlen( errmsg ) + strlen( tracemsg ) + 20 < sizeof(errmsg) ) {
+		strcat( errmsg, "last:" );
+		strcat( errmsg, tracemsg );
+	}
 	hsp3eb_dialog( errmsg );
 }
 
