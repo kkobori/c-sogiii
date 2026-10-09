@@ -12,7 +12,6 @@ char *hsp3dish_getlog(void);		// for gameplay3d log
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <android/log.h>
 
 #include "../hsp3/hsp3config.h"
 
@@ -717,11 +716,7 @@ static int cmdfunc_extcmd( int cmd )
 		p4 = code_getdi( bmscr->gx );
 		p5 = code_getdi( bmscr->gy );
 		src = wnd->GetBmscrSafe( p1 );
-		if ( bmscr->Copy( src, p2, p3, p4, p5 ) ) {
-			//	転送元が範囲外のとき: 本家(Windows版HSP)と同様にエラーにせず何もしない
-			static int warncnt = 0;
-			if ( warncnt++ < 5 ) __android_log_print( ANDROID_LOG_WARN, "HSPERR", "gcopy skipped: src=%d(sx=%d sy=%d) x=%d y=%d w=%d h=%d", p1, src->sx, src->sy, p2, p3, p4, p5 );
-		}
+		if ( bmscr->Copy( src, p2, p3, p4, p5 ) ) throw HSPERR_UNSUPPORTED_FUNCTION;
 		break;
 		}
 
@@ -738,10 +733,7 @@ static int cmdfunc_extcmd( int cmd )
 		p7 = code_getdi( bmscr->gy );
 		p8 = code_getdi( 0 );
 		src = wnd->GetBmscrSafe( p3 );
-		if ( bmscr->Zoom( p1, p2, src, p4, p5, p6, p7, p8 ) ) {
-			static int warncnt = 0;
-			if ( warncnt++ < 5 ) __android_log_print( ANDROID_LOG_WARN, "HSPERR", "gzoom skipped: src=%d(sx=%d sy=%d) x=%d y=%d w=%d h=%d", p3, src->sx, src->sy, p4, p5, p6, p7 );
-		}
+		if ( bmscr->Zoom( p1, p2, src, p4, p5, p6, p7, p8 ) ) throw HSPERR_UNSUPPORTED_FUNCTION;
 		break;
 		}
 
