@@ -11,6 +11,9 @@ sed -i -E 's/^([[:space:]]*)mmload([[:space:]])/\1mmloadsafe\2/' main.hsp
 #    高速化用のキャッシュ(pdc=3D描画結果 / pmq=ミニマップ枠)は無効化して通常描画にする
 sed -i -E 's/^([[:space:]]*pdcEligible=)1([[:space:]]*(;.*)?)$/\10\2/' main.hsp
 sed -i -E 's/:pmqOk=1([[:space:]]*(;.*)?)$/:pmqOk=0\1/' main.hsp
-# 4) 互換モジュールを hsp3dish.as の直後に挿入
+# 4) d3setcam は内部で d3wincy(=wincy) を ginfo_winy/2 に上書きする。本家の仕様どおり
+#    「d3setcam の後に d3wincy を設定」する順に入れ替える (自作インタプリタでは逆順で動いていた)
+sed -i -E '/^[[:space:]]*d3wincy=[0-9]+[[:space:]]*$/{N;s/^([[:space:]]*d3wincy=[0-9]+[[:space:]]*)\n([[:space:]]*d3setcam[^\n]*)$/\2\n\1/}' main.hsp
+# 5) 互換モジュールを hsp3dish.as の直後に挿入
 grep -q 'native_compat.hsp' main.hsp || sed -i '0,/#include "hsp3dish.as"/s//#include "hsp3dish.as"\n#include "native_compat.hsp"/' main.hsp
-echo "patched: pdcEligible0=$(grep -cE '^[[:space:]]*pdcEligible=0' main.hsp) pmqOk0=$(grep -c ':pmqOk=0' main.hsp) debugonoff=$(grep -cE '^[[:space:]]*debugonoff[[:space:]]*=[[:space:]]*0' main.hsp) mmloadsafe=$(grep -c 'mmloadsafe' main.hsp)"
+echo "patched: d3wincy_after_setcam=$(grep -B1 -E '^[[:space:]]*d3wincy=' main.hsp | grep -c d3setcam) pdcEligible0=$(grep -cE '^[[:space:]]*pdcEligible=0' main.hsp) pmqOk0=$(grep -c ':pmqOk=0' main.hsp) debugonoff=$(grep -cE '^[[:space:]]*debugonoff[[:space:]]*=[[:space:]]*0' main.hsp) mmloadsafe=$(grep -c 'mmloadsafe' main.hsp)"

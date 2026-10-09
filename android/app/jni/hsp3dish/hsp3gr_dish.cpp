@@ -12,6 +12,7 @@ char *hsp3dish_getlog(void);		// for gameplay3d log
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <android/log.h>
 
 #include "../hsp3/hsp3config.h"
 
@@ -733,6 +734,10 @@ static int cmdfunc_extcmd( int cmd )
 		p7 = code_getdi( bmscr->gy );
 		p8 = code_getdi( 0 );
 		src = wnd->GetBmscrSafe( p3 );
+		if ( p3 == 2 ) {	//	診断ログ(HSPDIAG): バッファ2(キャラ絵)からの描画
+			static int zcnt = 0;
+			if ( zcnt++ < 6 ) __android_log_print( ANDROID_LOG_INFO, "HSPDIAG", "gzoom from 2: dst=%dx%d src(sx=%d sy=%d texid=%d) srcrect=%d,%d,%d,%d gmode=%d cx=%d cy=%d", p1, p2, src->sx, src->sy, src->texid, p4, p5, p6, p7, bmscr->gmode, bmscr->cx, bmscr->cy );
+		}
 		if ( bmscr->Zoom( p1, p2, src, p4, p5, p6, p7, p8 ) ) throw HSPERR_UNSUPPORTED_FUNCTION;
 		break;
 		}
@@ -1471,6 +1476,17 @@ static int cmdfunc_extcmd( int cmd )
 		vptr = (char*)code_getiv_sizecheck(needsize);
 		p2 = code_getdi(0);
 		ctx->stat = bm2->BufferOp(p2, vptr);
+		{	//	診断ログ(HSPDIAG): celbitmapの結果と、渡されたデータに中身があるか
+			static int diagcnt = 0;
+			if ( diagcnt++ < 8 ) {
+				int nz = 0, first = 0, firstidx = -1;
+				int *ip = (int *)vptr;
+				for ( int k = 0; k < needsize; k++ ) {
+					if ( ip[k] != 0 ) { if ( nz == 0 ) { first = ip[k]; firstidx = k; } nz++; }
+				}
+				__android_log_print( ANDROID_LOG_INFO, "HSPDIAG", "celbitmap id=%d mode=%d stat=%d sx=%d sy=%d texid=%d nonzero=%d first=%08x@%d", p1, p2, (int)ctx->stat, bm2->sx, bm2->sy, bm2->texid, nz, first, firstidx );
+			}
+		}
 		break;
 		}
 

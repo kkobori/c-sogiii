@@ -137,10 +137,13 @@ public class CrashReporter {
             sb.append("\n(Android 10以前: 終了理由は取得不可。logcatのみ)\n");
         }
 
+        String lc = logcatTail();
+        // 診断ログ(HSPDIAG)があれば、落ちていなくても表示する
+        if (lc.contains("HSPDIAG")) any = true;
         if (!any) return null;
 
         // 3) logcat (自アプリ分)
-        sb.append("\n== logcat 末尾 ==\n").append(logcatTail());
+        sb.append("\n== logcat 末尾 ==\n").append(lc);
         String s = sb.toString();
         if (s.length() > MAX_CHARS) s = "...(省略)...\n" + s.substring(s.length() - MAX_CHARS);
         return s;
