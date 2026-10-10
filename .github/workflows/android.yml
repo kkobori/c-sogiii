@@ -41,6 +41,18 @@ jobs:
           else
             echo "config/admob.json なし: Googleのテスト広告ID"
           fi
+      - name: App icon
+        run: |
+          if [ -d config/icon ]; then
+            for d in ldpi mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              if [ -f config/icon/$d.png ]; then
+                cp config/icon/$d.png android/app/src/main/res/drawable-$d/ic_launcher.png
+              fi
+            done
+            echo "icon replaced"
+          else
+            echo "no config/icon: default icon"
+          fi
       - name: Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}

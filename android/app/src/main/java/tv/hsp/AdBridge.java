@@ -72,7 +72,8 @@ public class AdBridge {
             JSONObject o = new JSONObject(bo.toString("UTF-8"));
             String r = o.optString("reward", "");
             testing = o.optBoolean("testing", true);
-            if (r.length() > 0) rewardUnit = r;   // 空ならGoogleのテストID
+            // testing=true なら常にGoogleのテスト広告。false のときだけ入力した本番IDを使う
+            if (!testing && r.length() > 0) rewardUnit = r;
             cooldownMin = o.optInt("cooldownMinutes", 3);
             debugToast = o.optBoolean("debugToast", true);
             JSONArray a = o.optJSONArray("testDevices");

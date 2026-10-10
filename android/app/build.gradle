@@ -10,7 +10,8 @@ def readCfg = { String n ->
 }
 def appCfg = readCfg("app.json")
 def adCfg = readCfg("admob.json")
-def admobAppId = adCfg.appId ? adCfg.appId.toString() : "ca-app-pub-3940256099942544~3347511713"   // 既定はGoogle公式のテストID
+def admobTesting = (adCfg.testing == null) ? true : adCfg.testing.toString().toBoolean()
+def admobAppId = (!admobTesting && adCfg.appId) ? adCfg.appId.toString() : "ca-app-pub-3940256099942544~3347511713"   // 既定はGoogle公式のテストID
 def cfgPackage = appCfg.packageName ? appCfg.packageName.toString() : "tv.hsp.hspproj"
 def cfgLabel = appCfg.appName ? appCfg.appName.toString() : "hspproj"
 def cfgVerCode = appCfg.versionCode ? appCfg.versionCode.toString().toInteger() : 1
