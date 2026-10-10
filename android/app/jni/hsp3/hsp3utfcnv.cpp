@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef HSPWIN
+#include <unistd.h>
+#endif
 
 char* hsp3ext_getdir(int id);
 
@@ -418,6 +421,29 @@ int hsp3_fseek(FILE* ptr, int offset, int whence)
 
 int hsp3_binsave( char *fname8, void *mem, int msize, int seekofs )
 {
+#ifdef HSPNDK
+	if (seekofs < 0) {
+		// 全書き込みは一時ファイル→fsync→renameで原子的に行う(書込み中に落ちても旧データが残る)
+		char *dst = fname8;
+		if (*dst != '/') dst = hgio_getstorage(fname8);
+		char finalpath[1024];
+		char tmppath[1040];
+		strncpy(finalpath, dst, sizeof(finalpath) - 1);
+		finalpath[sizeof(finalpath) - 1] = 0;
+		snprintf(tmppath, sizeof(tmppath), "%s.tmp", finalpath);
+		FILE* tfp = fopen(tmppath, "wb");
+		if (tfp != NULL) {
+			int tlen = (int)fwrite(mem, 1, msize, tfp);
+			int ok = (tlen == msize);
+			if (fflush(tfp) != 0) ok = 0;
+			if (fsync(fileno(tfp)) != 0) ok = 0;
+			if (fclose(tfp) != 0) ok = 0;
+			if (ok && rename(tmppath, finalpath) == 0) return tlen;
+			remove(tmppath);
+		}
+		// 失敗時は従来方式にフォールバック
+	}
+#endif
 	FILE* hsp3_fp = hsp3_fopenwrite( fname8, seekofs );
 	if (hsp3_fp == NULL) return -1;
 	int flen = (int)fwrite( mem, 1, msize, hsp3_fp);

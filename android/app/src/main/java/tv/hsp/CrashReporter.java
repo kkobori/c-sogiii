@@ -85,6 +85,7 @@ public class CrashReporter {
     private static String buildReport(Context ctx) throws Exception {
         StringBuilder sb = new StringBuilder();
         boolean any = false;
+        int lastPid = -1;
 
         sb.append("device=").append(Build.MANUFACTURER).append(' ').append(Build.MODEL)
           .append(" / Android ").append(Build.VERSION.RELEASE)
@@ -116,10 +117,17 @@ public class CrashReporter {
                           .append("\n  desc=").append(i.getDescription()).append('\n');
                         if (first) {
                             first = false;
-                            if (r != ApplicationExitInfo.REASON_USER_REQUESTED
-                                    && r != ApplicationExitInfo.REASON_USER_STOPPED) {
+                            // 異常終了だけを対象にする。EXIT_SELF(正常終了含む)は、
+                            // その終了pidのHSPERR行がlogcatにある場合のみ(後段で判定)
+                            if (r == ApplicationExitInfo.REASON_CRASH
+                                    || r == ApplicationExitInfo.REASON_CRASH_NATIVE
+                                    || r == ApplicationExitInfo.REASON_ANR
+                                    || r == ApplicationExitInfo.REASON_LOW_MEMORY
+                                    || r == ApplicationExitInfo.REASON_SIGNALED
+                                    || r == ApplicationExitInfo.REASON_INITIALIZATION_FAILURE) {
                                 any = true;
                             }
+                            lastPid = i.getPid();
                             if (r == ApplicationExitInfo.REASON_CRASH_NATIVE
                                     || r == ApplicationExitInfo.REASON_ANR) {
                                 String tr = traceStrings(i);
@@ -138,8 +146,13 @@ public class CrashReporter {
         }
 
         String lc = logcatTail();
-        // 診断ログ(HSPDIAG)があれば、落ちていなくても表示する
-        if (lc.contains("HSPDIAG")) any = true;
+        // 前回プロセスがHSPERRを出して自己終了した場合のみ表示(HSPDIAGや古い行では出さない)
+        if (!any && lastPid > 0) {
+            for (String ln : lc.split("\n")) {
+                if (ln.contains("HSPERR") && ln.contains("(" + lastPid + ")")) { any = true; break; }
+                if (ln.contains("HSPERR") && ln.contains(" " + lastPid + ":")) { any = true; break; }
+            }
+        }
         if (!any) return null;
 
         // 3) logcat (自アプリ分)
