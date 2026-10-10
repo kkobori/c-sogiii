@@ -136,8 +136,28 @@ public class AdBridge {
         }
     }
 
+    private static void appendDebug(String msg) {
+        try {
+            if (act == null) return;
+            java.io.File f = new java.io.File(act.getFilesDir(), "ad_debug.txt");
+            String old = "";
+            if (f.exists()) {
+                java.io.FileInputStream in = new java.io.FileInputStream(f);
+                byte[] b = new byte[(int) Math.min(f.length(), 6000)];
+                int n = in.read(b); in.close();
+                old = new String(b, 0, Math.max(n, 0), "UTF-8");
+            }
+            String line = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(new java.util.Date()) + " " + msg + "\n";
+            String all = old + line;
+            if (all.length() > 5000) all = all.substring(all.length() - 5000);
+            java.io.FileOutputStream out = new java.io.FileOutputStream(f);
+            out.write(all.getBytes("UTF-8")); out.close();
+        } catch (Throwable t) { }
+    }
+
     private static void note(final String msg) {
         Log.i(TAG, msg);
+        if (debugToast) appendDebug(msg);   // 次回起動時に診断ダイアログで表示する
         if (!debugToast || act == null) return;
         ui.post(new Runnable() { public void run() {
             try { Toast.makeText(act, "AD: " + msg, Toast.LENGTH_LONG).show(); } catch (Throwable t) {}

@@ -145,6 +145,14 @@ public class CrashReporter {
             sb.append("\n(Android 10以前: 終了理由は取得不可。logcatのみ)\n");
         }
 
+        // 広告/音の診断メモ(admob.json の debugToast が true の間だけ記録される)
+        File adf = new File(ctx.getFilesDir(), "ad_debug.txt");
+        if (adf.exists()) {
+            any = true;
+            sb.append("\n== 広告/音の診断メモ ==\n").append(readFile(adf)).append('\n');
+            adf.delete();
+        }
+
         String lc = logcatTail();
         // 前回プロセスがHSPERRを出して自己終了した場合のみ表示(HSPDIAGや古い行では出さない)
         if (!any && lastPid > 0) {
