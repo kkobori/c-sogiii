@@ -7,7 +7,7 @@
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@drawable/ic_launcher"
-        android:label="@string/app_name"
+        android:label="${appLabel}"
         android:supportsRtl="true">
         <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}"/>
@@ -15,9 +15,9 @@
         <activity android:name="tv.hsp.HspActivity"
             android:exported="true"
             android:resizeableActivity="false"
-            android:screenOrientation="portrait"
+            android:screenOrientation="${screenOrientation}"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
-            android:label="@string/app_name">
+            android:label="${appLabel}">
         <meta-data android:name="android.app.lib_name"
             android:value="hspproj" />
             <intent-filter>

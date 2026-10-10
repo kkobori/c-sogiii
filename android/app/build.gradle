@@ -2,26 +2,33 @@ plugins {
     id 'com.android.application'
 }
 
-// AdMobアプリID: app/admob.json (CIがpusherの設定から生成) の appId。無ければGoogle公式のテストID
-def admobAppId = "ca-app-pub-3940256099942544~3347511713"
-def admobFile = file("admob.json")
-if (admobFile.exists()) {
-    def j = new groovy.json.JsonSlurper().parse(admobFile)
-    if (j.appId) admobAppId = j.appId.toString()
+// ビルド設定: リポジトリ直下 config/app.json, config/admob.json (pusherが生成。無ければ既定値)
+def cfgDir = new File(rootDir.parentFile, "config")
+def readCfg = { String n ->
+    def f = new File(cfgDir, n)
+    return f.exists() ? new groovy.json.JsonSlurper().parse(f) : [:]
 }
+def appCfg = readCfg("app.json")
+def adCfg = readCfg("admob.json")
+def admobAppId = adCfg.appId ? adCfg.appId.toString() : "ca-app-pub-3940256099942544~3347511713"   // 既定はGoogle公式のテストID
+def cfgPackage = appCfg.packageName ? appCfg.packageName.toString() : "tv.hsp.hspproj"
+def cfgLabel = appCfg.appName ? appCfg.appName.toString() : "hspproj"
+def cfgVerCode = appCfg.versionCode ? appCfg.versionCode.toString().toInteger() : 1
+def cfgVerName = appCfg.versionName ? appCfg.versionName.toString() : "1.0"
+def cfgOrient = (appCfg.orientation in ["portrait", "landscape", "sensorLandscape", "sensorPortrait", "fullSensor", "unspecified"]) ? appCfg.orientation.toString() : "portrait"
 
 android {
     namespace "tv.hsp.hspproj"
     compileSdkVersion 35
 
     defaultConfig {
-        applicationId "tv.hsp.hspproj"
+        applicationId cfgPackage
         minSdkVersion 23
         targetSdkVersion 35
-        versionCode 1
-        versionName "1.0"
+        versionCode cfgVerCode
+        versionName cfgVerName
         multiDexEnabled true
-        manifestPlaceholders = [admobAppId: admobAppId]
+        manifestPlaceholders = [admobAppId: admobAppId, appLabel: cfgLabel, screenOrientation: cfgOrient]
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {

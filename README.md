@@ -29,3 +29,8 @@ tools/mml_render.js は同じ合成をPC/CIで書き出すための補助ツー�
   `{"appId":"ca-app-pub-…~…","reward":"ca-app-pub-…/…","testing":true,"testDevices":[],"cooldownMinutes":3}`
 - `getreq v, SYSREQ_BACKBUTTON(1004)`: 1=戻るボタンが押された(読むと消費)。スクリプトが一度でもこれを読むと、戻るボタンでアプリが終了しなくなる(読まないスクリプトは従来どおり終了)。
 - いずれも実機未確認。
+
+## pusher (スマホから apk/aab を作る)
+
+`tools/hsp_native_pusher.html` を端末で開く。GitHubのトークン・owner・repo、アプリ設定(パッケージ名/アプリ名/version/向き)、AdMob設定、hspファイル、素材ZIPを指定して「反映してビルド」。
+差分だけをコミットし、ビルド完了を待って apk/aab をダウンロードする。設定は `config/app.json` / `config/admob.json` としてコミットされ、Gradle(build.gradle)とCIが読む。

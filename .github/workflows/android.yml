@@ -2,7 +2,7 @@ name: build-android-hsp
 on:
   workflow_dispatch:
   push:
-    paths: ['hsp/**', 'android/**', 'tools/**', '.github/workflows/android.yml']
+    paths: ['hsp/**', 'config/**', 'android/**', 'tools/**', '.github/workflows/android.yml']
 jobs:
   build:
     runs-on: ubuntu-latest

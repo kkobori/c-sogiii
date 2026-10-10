@@ -10919,8 +10919,6 @@ mes jdata(3)
         if btnpushon(nnn)=1:mx=btnpos(nnn,0,btnposset)+2:my=btnpos(nnn,1,btnposset)+2
     next
     ;if btnpushon(6)=1:gosub *xbtn
-    getreq back, SYSREQ_BACKBUTTON
-    if back :mx=btnpos(5,0,btnposset)+2:my=btnpos(5,1,btnposset)+2
 
     ;タッチの瞬間
     if motomx=-1 and motomy=-1 and mx!-1 and my!-1 {
