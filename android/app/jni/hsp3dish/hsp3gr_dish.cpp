@@ -4524,10 +4524,10 @@ void hsp3extcmd_adaudio( int hold )
 #ifdef USE_MMAN
 	if ( hold ) {
 		ad_audio_hold = 1;
-		if (mmman) mmman->Pause();
+		if (mmman) mmman->PauseForAd();
 	} else if ( ad_audio_hold ) {
 		ad_audio_hold = 0;
-		if (mmman) mmman->Resume();
+		if (mmman) mmman->ResumeForAd();
 	}
 #endif
 #endif

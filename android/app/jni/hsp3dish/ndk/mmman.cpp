@@ -62,6 +62,8 @@ typedef struct MMM
 
 	//	スクリプトのmmstopで一時停止中(1=一時停止, mmplayで続きから再生)
 	int script_pause;
+	int ad_hold;			// paused automatically while an ad is shown
+	int ad_resumed;			// resumed after an ad: a following mmplay of the same bank continues instead of restarting
 
 } MMM;
 
@@ -261,6 +263,8 @@ MMM *MMMan::SetBank( int num, int flag, int opt, void *mempt, char *fname )
 	m->fd = -1;
 	m->loop_ms = 0;
 	m->script_pause = 0;
+	m->ad_hold = 0;
+	m->ad_resumed = 0;
 	m->playerObject = NULL;
 	m->playerPlay = NULL;
 	m->playerSeek = NULL;
@@ -327,6 +331,38 @@ void MMMan::Resume( void )
 }
 
 
+void MMMan::PauseForAd( void )
+{
+	//		pause all playing sounds while an ad is shown
+	for ( int a = 0; a < mm_cur; a++ ) {
+		MMM *m = &(mem_snd[a]);
+		if ( m->flag != MMDATA_INTWAVE ) continue;
+		m->ad_resumed = 0;
+		if ( GetState( m ) == SL_PLAYSTATE_PLAYING ) {
+			SetState( m, SL_PLAYSTATE_PAUSED );
+			m->pause_flag = 1;
+			m->ad_hold = 1;
+		}
+	}
+}
+
+
+void MMMan::ResumeForAd( void )
+{
+	//		resume the sounds paused for an ad
+	for ( int a = 0; a < mm_cur; a++ ) {
+		MMM *m = &(mem_snd[a]);
+		if ( m->flag != MMDATA_INTWAVE || !m->ad_hold ) continue;
+		m->ad_hold = 0;
+		if ( GetState( m ) == SL_PLAYSTATE_PAUSED && m->script_pause == 0 ) {
+			SetState( m, SL_PLAYSTATE_PLAYING );
+			m->pause_flag = 0;
+			m->ad_resumed = 1;
+		}
+	}
+}
+
+
 void MMMan::Stop( void )
 {
 	//		stop all playing sounds
@@ -347,6 +383,8 @@ void MMMan::StopBank( MMM *mmm )
 	SetState( mmm, SL_PLAYSTATE_STOPPED );
 	mmm->pause_flag = 0;
 	mmm->script_pause = 0;
+	mmm->ad_hold = 0;
+	mmm->ad_resumed = 0;
 }
 
 
@@ -378,6 +416,8 @@ void MMMan::PlayBank( MMM *mmm )
 	SetState( mmm, SL_PLAYSTATE_PLAYING );
 	mmm->pause_flag = 0;
 	mmm->script_pause = 0;
+	mmm->ad_hold = 0;
+	mmm->ad_resumed = 0;
 }
 
 
@@ -550,7 +590,14 @@ int MMMan::Play( int num )
     if ( bank < 0 ) return 1;
 	m = &(mem_snd[bank]);
 	if ( m->flag == MMDATA_INTWAVE ) {
-		if ( m->script_pause && GetState( m ) == SL_PLAYSTATE_PAUSED ) {
+		if ( m->ad_resumed && GetState( m ) == SL_PLAYSTATE_PLAYING ) {
+			//	broadcast stopped by an ad and already resumed: keep playing from the current position
+			m->ad_resumed = 0;
+		} else if ( m->ad_hold && GetState( m ) == SL_PLAYSTATE_PAUSED ) {
+			SetState( m, SL_PLAYSTATE_PLAYING );
+			m->ad_hold = 0;
+			m->pause_flag = 0;
+		} else if ( m->script_pause && GetState( m ) == SL_PLAYSTATE_PAUSED ) {
 			//	mmstop(一時停止)後のmmplay: 続きから再生
 			SetState( m, SL_PLAYSTATE_PLAYING );
 			m->script_pause = 0;
@@ -700,6 +747,7 @@ void MMMan::PauseByScript( MMM *mmm )
 	if ( GetState( mmm ) == SL_PLAYSTATE_PLAYING ) {
 		SetState( mmm, SL_PLAYSTATE_PAUSED );
 		mmm->script_pause = 1;
+		mmm->ad_resumed = 0;
 	}
 }
 

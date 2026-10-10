@@ -37,6 +37,8 @@ public:
 	void StopNum( int num );
 	void Pause( void );
 	void Resume( void );
+	void PauseForAd( void );
+	void ResumeForAd( void );
 	void Stop( void );
 	void StopBank( int bank=-1 );
 	void Notify( void );
