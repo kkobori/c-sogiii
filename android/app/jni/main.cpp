@@ -119,6 +119,16 @@ static void engine_term_display(struct engine* engine) {
 static int32_t engine_handle_input(struct android_app* app,
         AInputEvent* event) {
     struct engine* engine = (struct engine*) app->userData;
+    if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_KEY) {
+        // Back button: handled by the app only when the script reads SYSREQ_BACKBUTTON (otherwise default: exit)
+        if (AKeyEvent_getKeyCode(event) == AKEYCODE_BACK && SysReqBackButtonEnabled()) {
+            if (AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_DOWN) {
+                SysReqBackButtonPress();
+            }
+            return 1;
+        }
+        return 0;
+    }
     if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION) {
 
         int i,keyid,pid;

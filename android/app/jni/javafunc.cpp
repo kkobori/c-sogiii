@@ -492,6 +492,22 @@ char *j_getHttpInfo( void )
 
 //--------------------------------------------------------------------------
 
+int j_adInt( int id )
+{
+	//	get ad state (Java adGetInt)
+	return jcall_int_int( "adGetInt", id );
+}
+
+
+char *j_adStr( int id )
+{
+	//	get ad string info such as last error (Java adGetStr)
+	char tmp[16];
+	snprintf( tmp, sizeof(tmp), "%d", id );
+	return jcall_S_str( "adGetStr", tmp );
+}
+
+
 int j_callAdMob( int val )
 {
 		return jcall_int_int( "callAdMob", val );

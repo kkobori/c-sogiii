@@ -2,6 +2,14 @@ plugins {
     id 'com.android.application'
 }
 
+// AdMobアプリID: app/admob.json (CIがpusherの設定から生成) の appId。無ければGoogle公式のテストID
+def admobAppId = "ca-app-pub-3940256099942544~3347511713"
+def admobFile = file("admob.json")
+if (admobFile.exists()) {
+    def j = new groovy.json.JsonSlurper().parse(admobFile)
+    if (j.appId) admobAppId = j.appId.toString()
+}
+
 android {
     namespace "tv.hsp.hspproj"
     compileSdkVersion 35
@@ -13,6 +21,7 @@ android {
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
+        manifestPlaceholders = [admobAppId: admobAppId]
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
@@ -56,6 +65,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.4.0'
     implementation 'com.google.android.material:material:1.4.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.2'
+    implementation 'com.google.android.gms:play-services-ads:23.6.0'
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'

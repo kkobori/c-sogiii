@@ -105,6 +105,13 @@ public class HspActivity extends NativeActivity {
     return MmlSynth.render( this, assetPath );
   }
 
+  // 広告(AdMob リワード): devcontrol "AdMob",p1 / getreq SYSREQ_AD_*
+  public int callAdMob( int val ) { return AdBridge.call( val ); }
+  public int adGetInt( int id ) { return AdBridge.getInt( id ); }
+  public String adGetStr( String id ) {
+    try { return AdBridge.getStr( Integer.parseInt( id ) ); } catch ( Throwable t ) { return ""; }
+  }
+
   // Nativeへの通知
   public native void nativepoke(int val, int val2);
 
@@ -448,6 +455,7 @@ public class HspActivity extends NativeActivity {
 		super.onCreate(savedInstanceState);
 		CrashReporter.showIfAny(this);
 		MmlSynth.prewarm(this);
+		try { AdBridge.init(this); } catch (Throwable t) { android.util.Log.w("HSPAD", "AdBridge.init: " + t); }
 
 		View decor = getWindow().getDecorView();
 		// hide navigation bar, hide status bar. don't show navigation when tapped.

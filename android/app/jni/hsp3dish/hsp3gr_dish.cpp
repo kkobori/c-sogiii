@@ -31,6 +31,9 @@ char *hsp3dish_getlog(void);		// for gameplay3d log
 #include "hgio.h"
 #include "supio.h"
 #include "sysreq.h"
+#ifdef HSPNDK
+#include "../javafunc.h"
+#endif
 #include "webtask.h"
 #include "hsp3ext.h"
 
@@ -1244,6 +1247,12 @@ static int cmdfunc_extcmd( int cmd )
 //		}
 #ifdef HSPDISHGP
 		game->hookGetSysReq( p1 );
+#endif
+#ifdef HSPNDK
+		if ( p1 == SYSREQ_AD_LASTERROR ) {
+			code_setva( p_pval, p_aptr, HSPVAR_FLAG_STR, j_adStr( p1 ) );
+			break;
+		}
 #endif
 		p2 = GetSysReq( p1 );
 		code_setva( p_pval, p_aptr, HSPVAR_FLAG_INT, &p2 );

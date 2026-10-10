@@ -20,3 +20,12 @@ tools/mml_render.js は同じ合成をPC/CIで書き出すための補助ツー�
 - `mmplay` = 一時停止中なら続きから再生。それ以外は先頭から
 - `mmload` = 読み込み直し(再生位置は先頭に戻る)
 - アプリを裏に回して復帰したときは、一時停止していたバンクは停止のまま、再生中だったものだけ再開
+
+## 広告(AdMob リワード) と 戻るボタン
+
+- `devcontrol "AdMob",18/17/16` はミニインタプリタと同じ状態機械 (Java `AdBridge`)。16 は `native_patch.sh` が `admobshow16` に置換し、結果(1/-1/-2)が出るまで待つ。
+- `getreq v, SYSREQ_AD_STATUS(1000) / SYSREQ_AD_LASTTIME(1001) / SYSREQ_AD_LASTERROR(1002, 文字列) / SYSREQ_AD_CANREQUEST(1003)`。
+- 設定は `config/admob.json` (無ければGoogleのテストID。CIが取り込む):
+  `{"appId":"ca-app-pub-…~…","reward":"ca-app-pub-…/…","testing":true,"testDevices":[],"cooldownMinutes":3}`
+- `getreq v, SYSREQ_BACKBUTTON(1004)`: 1=戻るボタンが押された(読むと消費)。スクリプトが一度でもこれを読むと、戻るボタンでアプリが終了しなくなる(読まないスクリプトは従来どおり終了)。
+- いずれも実機未確認。

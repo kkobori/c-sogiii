@@ -22,6 +22,8 @@ char *j_mmlRender( const char *assetpath );
 int j_dispDialog( char *msg1, char *msg2, int type );
 int j_callActivity( char *msg1, char *msg2, int type );
 int j_callAdMob( int val );
+int j_adInt( int id );
+char *j_adStr( int id );
 
 int j_addWindowFlag( int val );
 int j_clearWindowFlag( int val );

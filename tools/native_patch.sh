@@ -15,6 +15,8 @@ sed -i -E 's/:pmqOk=1([[:space:]]*(;.*)?)$/:pmqOk=0\1/' main.hsp
 # 4) d3setcam は内部で d3wincy(=wincy) を ginfo_winy/2 に上書きする。本家の仕様どおり
 #    「d3setcam の後に d3wincy を設定」する順に入れ替える (自作インタプリタでは逆順で動いていた)
 sed -i -E '/^[[:space:]]*d3wincy=[0-9]+[[:space:]]*$/{N;s/^([[:space:]]*d3wincy=[0-9]+[[:space:]]*)\n([[:space:]]*d3setcam[^\n]*)$/\2\n\1/}' main.hsp
+# 4b) 広告表示(16)は結果が出るまで待つ必要がある。待機つきの admobshow16 に置き換える
+sed -i -E 's/devcontrol[[:space:]]+"AdMob"[[:space:]]*,[[:space:]]*16([^0-9]|$)/admobshow16\1/' main.hsp
 # 5) 互換モジュールを hsp3dish.as の直後に挿入
 grep -q 'native_compat.hsp' main.hsp || sed -i '0,/#include "hsp3dish.as"/s//#include "hsp3dish.as"\n#include "native_compat.hsp"/' main.hsp
-echo "patched: mmlt_kept=$(grep -c '::mmlt::' main.hsp) d3wincy_after_setcam=$(grep -B1 -E '^[[:space:]]*d3wincy=' main.hsp | grep -c d3setcam) pdcEligible0=$(grep -cE '^[[:space:]]*pdcEligible=0' main.hsp) pmqOk0=$(grep -c ':pmqOk=0' main.hsp) debugonoff=$(grep -cE '^[[:space:]]*debugonoff[[:space:]]*=[[:space:]]*0' main.hsp) mmloadsafe=$(grep -c 'mmloadsafe' main.hsp)"
+echo "patched: mmlt_kept=$(grep -c '::mmlt::' main.hsp) d3wincy_after_setcam=$(grep -B1 -E '^[[:space:]]*d3wincy=' main.hsp | grep -c d3setcam) pdcEligible0=$(grep -cE '^[[:space:]]*pdcEligible=0' main.hsp) pmqOk0=$(grep -c ':pmqOk=0' main.hsp) debugonoff=$(grep -cE '^[[:space:]]*debugonoff[[:space:]]*=[[:space:]]*0' main.hsp) admobshow16=$(grep -c admobshow16 main.hsp) mmloadsafe=$(grep -c 'mmloadsafe' main.hsp)"

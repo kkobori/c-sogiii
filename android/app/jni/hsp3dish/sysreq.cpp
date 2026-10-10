@@ -9,6 +9,15 @@
 
 #include "hgio.h"
 #include "supio.h"
+#ifdef HSPNDK
+#include "../javafunc.h"
+#endif
+
+static volatile int back_pending = 0;		// back button: consumed when read once
+static volatile int back_enabled = 0;		// set when the script reads SYSREQ_BACKBUTTON at least once
+
+void SysReqBackButtonPress( void ) { back_pending = 1; }
+int SysReqBackButtonEnabled( void ) { return back_enabled; }
 
 static int	sysreq[SYSREQ_MAX];		// 初期設定データプール
 static float sysreqf[SYSREQ_MAX];		// 初期設定データプール
@@ -25,11 +34,25 @@ void SetSysReq( int reqid, int val )
 int GetSysReq( int reqid )
 {
 	switch( reqid ) {
+	case SYSREQ_BACKBUTTON:
+		{
+		back_enabled = 1;
+		int v = back_pending ? 1 : 0;
+		back_pending = 0;
+		return v;
+		}
+#ifdef HSPNDK
+	case SYSREQ_AD_STATUS:
+	case SYSREQ_AD_LASTTIME:
+	case SYSREQ_AD_CANREQUEST:
+		return j_adInt( reqid );
+#endif
 	case SYSREQ_TIMER:
 		return hgio_gettick();
 	default:
 		break;
 	}
+	if (( reqid < 0 )||( reqid >= SYSREQ_MAX )) return 0;
 	return sysreq[ reqid ];
 }
 

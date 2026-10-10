@@ -73,6 +73,16 @@ SYSREQ_OLDBOXF,
 SYSREQ_MAX
 };
 
+//	Android(native) extension ids (outside the SYSREQ_MAX array)
+#define SYSREQ_AD_STATUS 1000
+#define SYSREQ_AD_LASTTIME 1001
+#define SYSREQ_AD_LASTERROR 1002
+#define SYSREQ_AD_CANREQUEST 1003
+#define SYSREQ_BACKBUTTON 1004
+
+void SysReqBackButtonPress( void );
+int SysReqBackButtonEnabled( void );
+
 #define PLATFORM_WINDOWS 0
 #define PLATFORM_IOS 1
 #define PLATFORM_ANDROID 2

@@ -27,6 +27,16 @@ jobs:
           ../hsptools/hsp3cnv -d main
           python3 ../tools/add_trace.py main.cpp
           cp main.cpp ../android/app/jni/hsp3embed/hspsource.cpp
+      - name: AdMob config
+        run: |
+          if [ -f config/admob.json ]; then
+            cp config/admob.json android/app/admob.json
+            mkdir -p android/app/src/main/assets
+            cp config/admob.json android/app/src/main/assets/admob.json
+            echo "AdMob設定を取り込みました"
+          else
+            echo "config/admob.json なし: Googleのテスト広告ID"
+          fi
       - name: Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
