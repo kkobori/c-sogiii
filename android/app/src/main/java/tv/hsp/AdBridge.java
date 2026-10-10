@@ -258,7 +258,15 @@ public class AdBridge {
     }
 
     /** getreq SYSREQ_AD_* (1000..1003) */
+    public static volatile boolean backEnabled = false;   // スクリプトが SYSREQ_BACKBUTTON を読んだら true
+    public static volatile boolean backPending = false;
+
     public static int getInt(int id) {
+        if (id == 1004) {   // SYSREQ_BACKBUTTON: 1回読んだら消費
+            backEnabled = true;
+            boolean v = backPending; backPending = false;
+            return v ? 1 : 0;
+        }
         if (act == null) return 0;
         switch (id) {
             case 1000: return status;

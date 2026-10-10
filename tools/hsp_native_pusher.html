@@ -60,6 +60,10 @@ a{color:var(--acc)}
 </div></details>
 
 <details open><summary>④ ファイル</summary><div class="in">
+  <label>プロジェクトZIP (hsp-native-ci.zip など。中身を丸ごとリポジトリに反映。省略可)</label>
+  <input type="file" id="projZip" accept=".zip">
+  <div class="hint">更新されたzipを受け取ったときは、ここに選んで「反映してビルド」を押します。変更があったファイルだけが送られます。</div>
+  <div class="files" id="projList"></div>
   <label>HSPスクリプト (main.hsp など。複数可)</label>
   <input type="file" id="hspFiles" accept=".hsp,.as,.txt" multiple>
   <div class="files" id="hspList"></div>
@@ -132,6 +136,22 @@ async function collectFiles(){
   const enc=new TextEncoder();
   files.push({path:'config/app.json',bytes:enc.encode(JSON.stringify(appJson(),null,2)+'\n')});
   files.push({path:'config/admob.json',bytes:enc.encode(JSON.stringify(adJson(),null,2)+'\n')});
+  const pz=$('projZip').files[0];
+  if(pz){
+    if(typeof JSZip==='undefined') throw new Error('JSZipを読み込めません(通信を確認)');
+    const zip=await JSZip.loadAsync(await pz.arrayBuffer());
+    const names=Object.keys(zip.files).filter(n=>!zip.files[n].dir&&!n.startsWith('__MACOSX/')&&!n.split('/').pop().startsWith('._'));
+    const tops=new Set(names.map(n=>n.split('/')[0]));
+    const strip=(tops.size===1&&names.every(n=>n.includes('/')));
+    let n=0;
+    for(const name of names){
+      let p=name.replace(/\\/g,'/'); if(strip) p=p.slice(p.indexOf('/')+1);
+      if(!p||p.includes('..')||p.startsWith('.git/')) continue;
+      if(p==='config/app.json'||p==='config/admob.json') continue; // 設定は画面の入力値を優先
+      files.push({path:p,bytes:await zip.files[name].async('uint8array')}); n++;
+    }
+    logLine('プロジェクトZIP: '+n+'ファイル');
+  }
   for(const f of $('hspFiles').files){ files.push({path:'hsp/'+f.name,bytes:new Uint8Array(await f.arrayBuffer())}); }
   const z=$('assetZip').files[0];
   if(z){
@@ -162,8 +182,9 @@ async function pushFiles(files){
   const tree=await ghJson(R()+'/git/trees/'+baseTreeSha+'?recursive=1',{},'ツリー取得');
   const have={}; (tree.tree||[]).forEach(t=>{ if(t.type==='blob') have[t.path]=t.sha; });
   const changed=[];
-  for(const f of files){ const s=await blobSha(f.bytes); if(have[f.path]!==s) changed.push(Object.assign({sha:s},f)); }
+  for(const f of files){ const s=await blobSha(f.bytes); f.sha=s; if(have[f.path]!==s) changed.push(f); }
   logLine('変更: '+changed.length+' / '+files.length+' ファイル');
+  files.filter(f=>/^hsp\//.test(f.path)).forEach(f=>logLine('  '+f.path+' '+f.sha.slice(0,7)+(have[f.path]===f.sha?' 変更なし':' 更新')));
   if(changed.length===0) return {sha:ref.object.sha,branch,pushed:false};
   const entries=[];
   let done=0;
@@ -287,6 +308,7 @@ $('btnLoadCfg').onclick=async()=>{
   }catch(e){ logLine('エラー: '+e.message); }
 };
 $('hspFiles').onchange=()=>{ $('hspList').textContent=Array.from($('hspFiles').files).map(f=>f.name+' ('+Math.round(f.size/1024)+'KB)').join(' / '); };
+$('projZip').onchange=()=>{ const f=$('projZip').files[0]; $('projList').textContent=f?f.name+' ('+Math.round(f.size/1024)+'KB)':''; };
 $('assetZip').onchange=()=>{ const f=$('assetZip').files[0]; $('zipList').textContent=f?f.name+' ('+Math.round(f.size/1024)+'KB)':''; };
 </script>
 </body>

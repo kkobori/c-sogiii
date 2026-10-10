@@ -25,6 +25,7 @@ jobs:
           bash ../tools/native_patch.sh .
           ../hsptools/hspcmp -i -u --compath=../hsptools/common/ main.hsp
           ../hsptools/hsp3cnv -d main
+          echo "BUILD main.hsp blob=$(git hash-object main.hsp.orig) lines=$(wc -l < main.hsp.orig) commit=$GITHUB_SHA"
           python3 ../tools/add_trace.py main.cpp
           cp main.cpp ../android/app/jni/hsp3embed/hspsource.cpp
       - name: AdMob config

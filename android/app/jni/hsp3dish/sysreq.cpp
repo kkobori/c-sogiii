@@ -35,6 +35,9 @@ int GetSysReq( int reqid )
 {
 	switch( reqid ) {
 	case SYSREQ_BACKBUTTON:
+#ifdef HSPNDK
+		return j_adInt( reqid );		// handled in Java (HspActivity): works with Android 13+ back dispatch
+#endif
 		{
 		back_enabled = 1;
 		int v = back_pending ? 1 : 0;
