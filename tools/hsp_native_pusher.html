@@ -64,7 +64,9 @@ a{color:var(--acc)}
   <input type="file" id="projZip" accept=".zip">
   <div class="hint">更新されたzipを受け取ったときは、ここに選んで「反映してビルド」を押します。変更があったファイルだけが送られます。</div>
   <div class="files" id="projList"></div>
-  <label>HSPスクリプト (main.hsp など。複数可)</label>
+  <label>メインスクリプトのファイル名 (ビルドの起点。例: main.hsp / sogiii.hsp)</label>
+  <input type="text" id="mainScript" autocapitalize="off" autocomplete="off" placeholder="main.hsp">
+  <label>HSPスクリプト (複数可。メイン以外の #include されるファイルも一緒に)</label>
   <input type="file" id="hspFiles" accept=".hsp,.as,.txt" multiple>
   <div class="files" id="hspList"></div>
   <label>素材ZIP (gdata など。中身を assets/ に置きます。省略可)</label>
@@ -82,7 +84,7 @@ a{color:var(--acc)}
 <script>
 const $ = id => document.getElementById(id);
 const K = 'hsp_native_pusher_v1';
-const FIELDS = ['pat','owner','repo','packageName','appName','versionCode','versionName','orientation','adAppId','adReward','adDevices','adCooldown'];
+const FIELDS = ['mainScript','pat','owner','repo','packageName','appName','versionCode','versionName','orientation','adAppId','adReward','adDevices','adCooldown'];
 
 function logLine(s){ const e=$('log'); e.textContent += '['+new Date().toLocaleTimeString()+'] '+s+'\n'; e.scrollTop=e.scrollHeight; }
 function save(){ try{ const o={}; FIELDS.forEach(f=>o[f]=$(f).value); o.adDebug=$('adDebug').checked; localStorage.setItem(K,JSON.stringify(o)); }catch(e){} }
@@ -94,7 +96,7 @@ load();
 function appJson(){
   return { packageName:$('packageName').value.trim()||'tv.hsp.hspproj', appName:$('appName').value.trim()||'hspproj',
     versionCode:Math.max(1,parseInt($('versionCode').value,10)||1), versionName:$('versionName').value.trim()||'1.0',
-    orientation:$('orientation').value };
+    orientation:$('orientation').value, mainScript:($('mainScript').value.trim()||'main.hsp') };
 }
 function adJson(){
   const devs=$('adDevices').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -104,6 +106,7 @@ function adJson(){
 function validate(){
   const a=appJson();
   if(!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/.test(a.packageName)) throw new Error('パッケージ名の形式が不正です (例: tv.hsp.myapp)');
+  if(!/^[\w.\-]+\.hsp$/.test(a.mainScript)) throw new Error('メインスクリプト名は 英数字.hsp の形式にしてください');
   const d=adJson();
   if(d.appId && !/^ca-app-pub-\d+~\d+$/.test(d.appId)) throw new Error('AdMobアプリIDの形式が不正です (ca-app-pub-数字~数字)');
   if(d.reward && !/^ca-app-pub-\d+\/\d+$/.test(d.reward)) throw new Error('広告ユニットIDの形式が不正です (ca-app-pub-数字/数字)');
@@ -300,7 +303,7 @@ $('btnLoadCfg').onclick=async()=>{
       const r=await gh(R()+'/contents/config/'+n+'.json');
       if(!r.ok){ logLine('config/'+n+'.json はまだありません'); continue; }
       const j=await r.json(); const o=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,'')))));
-      if(n==='app'){ $('packageName').value=o.packageName||''; $('appName').value=o.appName||''; $('versionCode').value=o.versionCode||1; $('versionName').value=o.versionName||'1.0'; $('orientation').value=o.orientation||'portrait'; }
+      if(n==='app'){ $('packageName').value=o.packageName||''; $('appName').value=o.appName||''; $('versionCode').value=o.versionCode||1; $('versionName').value=o.versionName||'1.0'; $('orientation').value=o.orientation||'portrait'; $('mainScript').value=o.mainScript||'main.hsp'; }
       else { $('adAppId').value=o.appId||''; $('adReward').value=o.reward||''; $('adDevices').value=(o.testDevices||[]).join('\n'); $('adCooldown').value=o.cooldownMinutes!=null?o.cooldownMinutes:3; $('adDebug').checked=o.debugToast!==false; }
       logLine('読み込み: config/'+n+'.json');
     }

@@ -22,6 +22,9 @@ jobs:
       - name: HSP script -> C++ (same as HSP3Dish Helper)
         working-directory: hsp
         run: |
+          MAIN=$(python3 -c "import json,os;print(json.load(open('../config/app.json')).get('mainScript','main.hsp'))" 2>/dev/null || echo main.hsp)
+          echo "メインスクリプト: $MAIN"
+          if [ "$MAIN" != "main.hsp" ]; then cp "$MAIN" main.hsp; fi
           bash ../tools/native_patch.sh .
           ../hsptools/hspcmp -i -u --compath=../hsptools/common/ main.hsp
           ../hsptools/hsp3cnv -d main

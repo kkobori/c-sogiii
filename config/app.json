@@ -3,5 +3,6 @@
   "appName": "cpp_sogiii",
   "versionCode": 1,
   "versionName": "1.0",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "mainScript": "wwwsogiii.hsp"
 }
