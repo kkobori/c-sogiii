@@ -130,6 +130,12 @@ public class HspActivity extends NativeActivity {
     super.onBackPressed();
   }
 
+  @Override
+  protected void onPause() { AdBridge.noteFromNative( "activity onPause" ); super.onPause(); }
+
+  @Override
+  protected void onResume() { super.onResume(); AdBridge.noteFromNative( "activity onResume" ); }
+
   // Nativeへの通知
   public native void nativepoke(int val, int val2);
 

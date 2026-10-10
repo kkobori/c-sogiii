@@ -69,6 +69,15 @@ static int hsp3dish_devcontrol( char *cmd, int p1, int p2, int p3 )
 	}
 	if ( strcmp( cmd, "AdMob" )==0 ) {
 		int res = j_callAdMob( p1 );
+		if ( p1 == 19 ) {
+			static int pollcnt = 0;
+			pollcnt++;
+			if ( pollcnt == 1 || pollcnt % 100 == 0 ) {
+				char pn[48];
+				snprintf( pn, sizeof(pn), "poll#%d res=%d", pollcnt, res );
+				j_adNote( pn );
+			}
+		}
 		//	pause the app sounds while an ad is shown (16 = start, 19 = poll result)
 		if ( p1 == 16 && res == 0 ) hsp3extcmd_adaudio( 1 );
 		if ( p1 == 19 && res != 2 ) {

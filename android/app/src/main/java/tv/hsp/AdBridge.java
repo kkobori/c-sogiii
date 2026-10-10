@@ -241,7 +241,7 @@ public class AdBridge {
         if (status != 2) return;
         lastResult = ok ? 1 : -1;
         lastError = err == null ? "" : err;
-        if (!ok) note("show: " + lastError);
+        note("ad finished ok=" + ok + (ok ? "" : " " + lastError));
         rewarded = null;
         if (ok) prefs().edit().putLong("lastshown", System.currentTimeMillis()).apply();
         resultReady = true;

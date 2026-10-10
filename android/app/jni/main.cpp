@@ -175,6 +175,11 @@ static int32_t engine_handle_input(struct android_app* app,
  */
 static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
     struct engine* engine = (struct engine*) app->userData;
+    if ( engine->hspctx != NULL ) {
+        char cn[32];
+        snprintf( cn, sizeof(cn), "glue cmd=%d", (int)cmd );
+        j_adNote( cn );
+    }
     switch (cmd) {
     case APP_CMD_SAVE_STATE:
         engine->app->savedState = malloc(sizeof(struct saved_state));
