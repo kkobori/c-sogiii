@@ -112,6 +112,23 @@ public class HspActivity extends NativeActivity {
     try { return AdBridge.getStr( Integer.parseInt( id ) ); } catch ( Throwable t ) { return ""; }
   }
 
+  // 戻るボタン: スクリプトが SYSREQ_BACKBUTTON を読んでいる間は、アプリを閉じず通知だけ行う
+  @Override
+  public boolean dispatchKeyEvent( android.view.KeyEvent ev ) {
+    if ( ev.getKeyCode() == android.view.KeyEvent.KEYCODE_BACK && AdBridge.backEnabled ) {
+      if ( ev.getAction() == android.view.KeyEvent.ACTION_DOWN && ev.getRepeatCount() == 0 ) AdBridge.backPending = true;
+      return true;
+    }
+    return super.dispatchKeyEvent( ev );
+  }
+
+  @SuppressWarnings("deprecation")
+  @Override
+  public void onBackPressed() {
+    if ( AdBridge.backEnabled ) { AdBridge.backPending = true; return; }
+    super.onBackPressed();
+  }
+
   // Nativeへの通知
   public native void nativepoke(int val, int val2);
 
