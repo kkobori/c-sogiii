@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
@@ -57,6 +58,7 @@ public class AdBridge {
     private static String rewardUnit = TEST_REWARD;
     private static boolean testing = true;
     private static int cooldownMin = 3;
+    private static boolean debugToast = true;   // 失敗理由を画面に短く表示(原因調査用。admob.jsonで "debugToast":false にすると消える)
     private static final List<String> testDevices = new ArrayList<String>();
 
     private static void loadConfig(Context c) {
@@ -72,6 +74,7 @@ public class AdBridge {
             testing = o.optBoolean("testing", true);
             if (r.length() > 0) rewardUnit = r;   // 空ならGoogleのテストID
             cooldownMin = o.optInt("cooldownMinutes", 3);
+            debugToast = o.optBoolean("debugToast", true);
             JSONArray a = o.optJSONArray("testDevices");
             if (a != null) for (int i = 0; i < a.length(); i++) testDevices.add(a.getString(i));
         } catch (Throwable t) {
@@ -94,7 +97,7 @@ public class AdBridge {
                 public void onConsentInfoUpdateSuccess() {
                     UserMessagingPlatform.loadAndShowConsentFormIfRequired(act, new com.google.android.ump.ConsentForm.OnConsentFormDismissedListener() {
                         public void onConsentFormDismissed(com.google.android.ump.FormError e) {
-                            if (e != null) lastError = "consent form: " + e.getMessage();
+                            if (e != null) { lastError = "consent form: " + e.getMessage(); note(lastError); }
                             canRequest = ci.canRequestAds() ? 1 : 0;
                             if (canRequest == 0 && lastError.length() == 0) lastError = "consent not granted (canRequestAds=false)";
                             initSdk();
@@ -105,6 +108,7 @@ public class AdBridge {
                 public void onConsentInfoUpdateFailure(com.google.android.ump.FormError e) {
                     // 同意情報が取れなくても従来通りリクエストを試みる
                     lastError = "consent info: " + e.getMessage();
+                    note(lastError);
                     canRequest = -1;
                     initSdk();
                 }
@@ -123,14 +127,27 @@ public class AdBridge {
             MobileAds.initialize(act, new com.google.android.gms.ads.initialization.OnInitializationCompleteListener() {
                 public void onInitializationComplete(com.google.android.gms.ads.initialization.InitializationStatus s) {
                     initDone = true;
+                    note("init ok (consent=" + canRequest + ", unit=" + rewardUnit + ")");
                     if (pendingLoad) { pendingLoad = false; startLoad(); }
                 }
             });
         } catch (Throwable t) {
-            lastError = "init: " + t;
-            Log.w(TAG, lastError);
-            if (status == -1) status = -2;
+            fail("init: " + t);
         }
+    }
+
+    private static void note(final String msg) {
+        Log.i(TAG, msg);
+        if (!debugToast || act == null) return;
+        ui.post(new Runnable() { public void run() {
+            try { Toast.makeText(act, "AD: " + msg, Toast.LENGTH_LONG).show(); } catch (Throwable t) {}
+        } });
+    }
+
+    private static void fail(String why) {
+        status = -2; lastError = why;
+        Log.w(TAG, "FAIL " + why);
+        note(why);
     }
 
     private static SharedPreferences prefs() { return act.getSharedPreferences("hsp_ad", Context.MODE_PRIVATE); }
@@ -145,30 +162,33 @@ public class AdBridge {
 
     private static void startLoad() {
         status = -1; resultReady = false; rewarded = null;
-        if (!initDone) { pendingLoad = true; return; }
-        if (canRequest == 0) { status = -2; lastError = "consent not granted (canRequestAds=false)"; return; }
         final long token = System.nanoTime();
         loadToken = token;
+        // 初期化待ちでも、必ず45秒で失敗扱いにして原因を残す
+        ui.postDelayed(new Runnable() { public void run() {
+            if (loadToken == token && status == -1) {
+                fail("ad load timeout(45s) initDone=" + initDone + " consent=" + canRequest + " last=" + lastError);
+            }
+        } }, 45000);
+        if (!initDone) { pendingLoad = true; return; }
+        if (canRequest == 0) { fail("consent not granted (canRequestAds=false)"); return; }
         ui.post(new Runnable() { public void run() {
             try {
                 RewardedAd.load(act, rewardUnit, new AdRequest.Builder().build(), new RewardedAdLoadCallback() {
                     public void onAdLoaded(RewardedAd ad) {
                         if (loadToken != token) return;
                         rewarded = ad; status = 1; lastError = "";
+                        Log.i(TAG, "reward ad loaded");
                     }
                     public void onAdFailedToLoad(LoadAdError e) {
                         if (loadToken != token) return;
-                        status = -2; lastError = "load failed: " + e.getCode() + " " + e.getMessage();
-                        Log.w(TAG, lastError);
+                        fail("load failed: " + e.getCode() + " " + e.getMessage());
                     }
                 });
             } catch (Throwable t) {
-                status = -2; lastError = "load exception: " + t;
+                fail("load exception: " + t);
             }
         } });
-        ui.postDelayed(new Runnable() { public void run() {
-            if (loadToken == token && status == -1) { status = -2; lastError = "ad load timeout(45s)"; }
-        } }, 45000);
     }
     private static volatile long loadToken = 0;
 
@@ -199,6 +219,7 @@ public class AdBridge {
         if (status != 2) return;
         lastResult = ok ? 1 : -1;
         lastError = err == null ? "" : err;
+        if (!ok) note("show: " + lastError);
         rewarded = null;
         if (ok) prefs().edit().putLong("lastshown", System.currentTimeMillis()).apply();
         resultReady = true;
