@@ -15,6 +15,7 @@
 #include "hsp3embed/hsp3embed.h"
 #include "hsp3dish/hgio.h"
 #include "hsp3dish/sysreq.h"
+void hsp3extcmd_adaudio( int hold );
 
 //#define USE_SENSOR
 
@@ -179,6 +180,10 @@ static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
         char cn[32];
         snprintf( cn, sizeof(cn), "glue cmd=%d", (int)cmd );
         j_adNote( cn );
+        // resume sounds paused for an ad once the app is back and the ad is no longer showing
+        if ( cmd == APP_CMD_GAINED_FOCUS || cmd == APP_CMD_RESUME ) {
+            if ( j_adInt( 1000 ) != 2 ) hsp3extcmd_adaudio( 0 );
+        }
     }
     switch (cmd) {
     case APP_CMD_SAVE_STATE:
