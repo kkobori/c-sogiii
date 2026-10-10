@@ -4515,6 +4515,25 @@ void hsp3excmd_rebuild_window(void)
 }
 
 
+static volatile int ad_audio_hold = 0;		// 1 while an ad is shown: keep sounds paused even if the window is restored
+
+void hsp3extcmd_adaudio( int hold )
+{
+	//	pause all sounds while an ad is shown / resume afterwards
+#if defined(HSPNDK) || defined(HSPLINUX) || defined(HSPEMSCRIPTEN)
+#ifdef USE_MMAN
+	if ( hold ) {
+		ad_audio_hold = 1;
+		if (mmman) mmman->Pause();
+	} else if ( ad_audio_hold ) {
+		ad_audio_hold = 0;
+		if (mmman) mmman->Resume();
+	}
+#endif
+#endif
+}
+
+
 void hsp3extcmd_pause(void)
 {
 #if defined(HSPNDK) || defined(HSPLINUX) || defined(HSPEMSCRIPTEN)
@@ -4531,7 +4550,7 @@ void hsp3extcmd_resume( void )
 {
 #if defined(HSPNDK) || defined(HSPLINUX) || defined(HSPEMSCRIPTEN)
 #ifdef USE_MMAN
-	if (mmman) {
+	if (mmman && !ad_audio_hold) {
 		mmman->Resume();
 	}
 	wnd->Resume();

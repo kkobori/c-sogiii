@@ -14,6 +14,7 @@
 #include "../../hsp3dish//sysreq.h"
 #include "../../hsp3embed/hsp3embed.h"
 #include "../../javafunc.h"
+void hsp3extcmd_adaudio( int hold );		// hsp3gr_dish.cpp
 
 
 /*------------------------------------------------------------*/
@@ -67,7 +68,11 @@ static int hsp3dish_devcontrol( char *cmd, int p1, int p2, int p3 )
 		return 0;
 	}
 	if ( strcmp( cmd, "AdMob" )==0 ) {
-		return j_callAdMob( p1 );
+		int res = j_callAdMob( p1 );
+		//	pause the app sounds while an ad is shown (16 = start, 19 = poll result)
+		if ( p1 == 16 && res == 0 ) hsp3extcmd_adaudio( 1 );
+		if ( p1 == 19 && res != 2 ) hsp3extcmd_adaudio( 0 );
+		return res;
 	}
 	return -1;
 }

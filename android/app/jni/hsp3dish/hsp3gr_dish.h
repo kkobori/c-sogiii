@@ -15,6 +15,7 @@ void hsp3notify_extcmd( void );
 void hsp3gr_cleanup(void);
 void hsp3gr_dbg_gui( void );
 void hsp3extcmd_pause( void );
+void hsp3extcmd_adaudio( int hold );
 void hsp3extcmd_resume( void );
 
 HSP3DEVINFO *hsp3extcmd_getdevinfo( void );
