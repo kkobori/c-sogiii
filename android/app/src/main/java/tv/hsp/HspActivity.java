@@ -109,6 +109,7 @@ public class HspActivity extends NativeActivity {
   public int callAdMob( int val ) { return AdBridge.call( val ); }
   public int adGetInt( int id ) { return AdBridge.getInt( id ); }
   public String adGetStr( String id ) {
+    if ( id != null && id.startsWith( "note:" ) ) { AdBridge.noteFromNative( id.substring( 5 ) ); return ""; }
     try { return AdBridge.getStr( Integer.parseInt( id ) ); } catch ( Throwable t ) { return ""; }
   }
 

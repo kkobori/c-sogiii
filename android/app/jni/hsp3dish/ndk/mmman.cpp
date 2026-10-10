@@ -333,6 +333,7 @@ void MMMan::Resume( void )
 
 void MMMan::PauseForAd( void )
 {
+	int npaused = 0;
 	//		pause all playing sounds while an ad is shown
 	for ( int a = 0; a < mm_cur; a++ ) {
 		MMM *m = &(mem_snd[a]);
@@ -342,24 +343,36 @@ void MMMan::PauseForAd( void )
 			SetState( m, SL_PLAYSTATE_PAUSED );
 			m->pause_flag = 1;
 			m->ad_hold = 1;
+			npaused++;
 		}
 	}
+	char nt[100];
+	snprintf( nt, sizeof(nt), "snd pause banks=%d paused=%d", mm_cur, npaused );
+	j_adNote( nt );
 }
 
 
 void MMMan::ResumeForAd( void )
 {
+	int nhold = 0, nres = 0, lastst = -1, lastsp = -1;
 	//		resume the sounds paused for an ad
 	for ( int a = 0; a < mm_cur; a++ ) {
 		MMM *m = &(mem_snd[a]);
 		if ( m->flag != MMDATA_INTWAVE || !m->ad_hold ) continue;
 		m->ad_hold = 0;
+		nhold++;
+		lastst = (int)GetState( m );
+		lastsp = m->script_pause;
 		if ( GetState( m ) == SL_PLAYSTATE_PAUSED && m->script_pause == 0 ) {
 			SetState( m, SL_PLAYSTATE_PLAYING );
 			m->pause_flag = 0;
 			m->ad_resumed = 1;
+			nres++;
 		}
 	}
+	char nt[120];
+	snprintf( nt, sizeof(nt), "snd resume hold=%d resumed=%d state=%d spause=%d", nhold, nres, lastst, lastsp );
+	j_adNote( nt );
 }
 
 

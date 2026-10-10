@@ -499,6 +499,15 @@ int j_adInt( int id )
 }
 
 
+void j_adNote( const char *text )
+{
+	//	debug note shown as a toast (only when debugToast is on in admob.json)
+	char tmp[200];
+	snprintf( tmp, sizeof(tmp), "note:%s", text );
+	jcall_S_str( "adGetStr", tmp );
+}
+
+
 char *j_adStr( int id )
 {
 	//	get ad string info such as last error (Java adGetStr)

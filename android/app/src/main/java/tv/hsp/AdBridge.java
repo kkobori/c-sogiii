@@ -144,6 +144,8 @@ public class AdBridge {
         } });
     }
 
+    public static void noteFromNative(String s) { note(s); }
+
     private static void fail(String why) {
         status = -2; lastError = why;
         Log.w(TAG, "FAIL " + why);
