@@ -166,7 +166,7 @@ public class CrashReporter {
         // 3) logcat (自アプリ分)
         sb.append("\n== logcat 末尾 ==\n").append(lc);
         String s = sb.toString();
-        if (s.length() > MAX_CHARS) s = "...(省略)...\n" + s.substring(s.length() - MAX_CHARS);
+        if (s.length() > MAX_CHARS) s = s.substring(0, MAX_CHARS * 2 / 3) + "\n...(省略)...\n" + s.substring(s.length() - MAX_CHARS / 3);
         return s;
     }
 
@@ -211,16 +211,24 @@ public class CrashReporter {
             String line;
             while ((line = br.readLine()) != null) {
                 // ノイズを減らす: 重要そうな行だけ残す
-                if (line.contains("HSPERR") || line.contains("AndroidRuntime") || line.contains("Fatal")
-                        || line.contains("DEBUG") || line.contains("libc") || line.contains("hsp")
-                        || line.contains("HSP") || line.contains("tv.hsp") || line.contains("signal")
+                if (line.contains("dataspace")) continue;   // 毎フレーム出るノイズ
+                if (line.contains("HSPERR") || line.contains("HSPAD") || line.contains("AndroidRuntime") || line.contains("Fatal")
+                        || line.contains("DEBUG") || line.contains("libc") || line.contains("signal")
                         || line.contains("Exception") || line.contains("ActivityManager")) {
                     sb.append(line).append('\n');
                 }
             }
             br.close();
             if (sb.length() == 0) return "(該当行なし)\n";
-            return sb.toString();
+            // 末尾60行だけ残す(診断メモなど前半の情報が切れないように)
+            String all = sb.toString();
+            String[] ls = all.split("\n");
+            if (ls.length > 60) {
+                StringBuilder t = new StringBuilder();
+                for (int i = ls.length - 60; i < ls.length; i++) t.append(ls[i]).append('\n');
+                return t.toString();
+            }
+            return all;
         } catch (Throwable t) {
             return "(logcat取得失敗: " + t + ")\n";
         }
