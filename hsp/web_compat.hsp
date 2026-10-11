@@ -1,0 +1,4 @@
+; Web(公式hsp3dish.js)用の互換定義。ビルド時に web_patch.sh が main.hsp から自動で読み込ませる。
+; スクリプト内の "case PLATFORM_wwwWEBGL" を、公式Webの getreq SYSREQ_PLATFORM (=3) に一致させる。
+#const global PLATFORM_wwwWEBGL 3
+#const global PLATFORM_wwwANDROID 102
