@@ -18,6 +18,8 @@ canvas#canvas{display:block;background:#000;outline:none;touch-action:none}
 #bootProg{width:min(320px,80vw);height:8px;background:#222c38;border-radius:4px;overflow:hidden}
 #bootBar{height:100%;width:0;background:#4da3ff;transition:width .2s}
 #boot button{padding:14px 28px;border:0;border-radius:12px;background:#4da3ff;color:#fff;font:inherit;font-weight:700;display:none}
+#bootLog{display:none;max-width:92vw;max-height:38vh;overflow:auto;text-align:left;white-space:pre-wrap;word-break:break-all;font:11px/1.4 ui-monospace,Menlo,monospace;color:#cfd8e3;background:#05080c;border:1px solid #2c3745;border-radius:8px;padding:8px;margin:0;-webkit-user-select:text;user-select:text;touch-action:pan-y}
+#bootReload{display:none}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:88vw;background:rgba(20,24,30,.92);color:#fff;
   padding:10px 16px;border-radius:10px;font-size:14px;z-index:90;opacity:0;pointer-events:none;transition:opacity .25s}
 #toast.show{opacity:1}
@@ -37,6 +39,7 @@ canvas#canvas{display:block;background:#000;outline:none;touch-action:none}
   <div id="bootProg"><div id="bootBar"></div></div>
   <button id="bootBtn" type="button">タップして開始</button>
   <button id="bootReload" type="button" onclick="location.reload()">再読み込み</button>
+  <pre id="bootLog"></pre>
 </div>
 <script>window.__HSP_BUILD="%BUILD%";</script>
 <script src="hsp-web-runtime.js?v=%BUILD%"></script>

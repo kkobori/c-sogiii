@@ -301,6 +301,7 @@
     if (el.btn) el.btn.style.display = 'none';
     if (el.msg) { el.msg.textContent = msg; el.msg.style.color = '#ff8a8a'; }
     var rb = $('bootReload'); if (rb) rb.style.display = 'inline-block';
+    var bl = $('bootLog'); if (bl) { bl.style.display = 'block'; bl.textContent = LOGS.slice(-25).join('\n'); }
   }
   root.addEventListener('error', function (e) { log('[error] ' + (e && e.message) + ' @' + (e && e.filename) + ':' + (e && e.lineno)); });
   root.addEventListener('unhandledrejection', function (e) { log('[reject] ' + errText(e && e.reason)); });
@@ -311,15 +312,18 @@
       return r.json();
     });
   }
-  function fetchBytes(url, onProgress) {
-    return fetch(url + (url.indexOf('?') < 0 ? '?v=' + V : '')).then(function (r) {
-      if (!r.ok) throw new Error(url + ' HTTP ' + r.status);
+  // ファイル取得。1回目: 通常 / 2回目: キャッシュを無視(壊れたキャッシュ対策) / 3回目: 保存もしない
+  var FETCH_MODES = [['default', ''], ['reload', '&r='], ['no-store', '&n=']];
+  function fetchBytesOnce(url, mode, onProgress) {
+    return fetch(url, { cache: mode }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + r.statusText);
       var total = +r.headers.get('content-length') || 0;
       if (!r.body || !r.body.getReader || !total) return r.arrayBuffer().then(function (b) { return new Uint8Array(b); });
       var reader = r.body.getReader(), chunks = [], got = 0;
       return (function pump() {
         return reader.read().then(function (x) {
           if (x.done) {
+            if (got !== total) throw new Error('サイズ不一致 ' + got + '/' + total);
             var out = new Uint8Array(got), o = 0;
             chunks.forEach(function (c) { out.set(c, o); o += c.length; });
             return out;
@@ -330,6 +334,21 @@
       })();
     });
   }
+  function fetchBytes(url, onProgress) {
+    var base = url + (url.indexOf('?') < 0 ? '?v=' + V : '');
+    var errs = [];
+    var forced = Q.get('nocache') === '1' ? 1 : 0;
+    function attempt(i) {
+      if (i >= FETCH_MODES.length) return Promise.reject(new Error(url.split('?')[0] + ' を取得できません: ' + errs.join(' / ')));
+      var m = FETCH_MODES[i];
+      return fetchBytesOnce(base + (m[1] ? m[1] + Date.now() : ''), m[0], onProgress).catch(function (e) {
+        var t = '(' + m[0] + ') ' + errText(e); errs.push(t);
+        log('[取得失敗] ' + url.split('?')[0] + ' ' + t);
+        return attempt(i + 1);
+      });
+    }
+    return attempt(forced);
+  }
 
   function mkdirp(FS, dir) {
     if (FS.mkdirTree) { try { FS.mkdirTree(dir); return; } catch (e) {} }
@@ -338,12 +357,12 @@
   }
 
   function loadAssets(FS) {
-    setBoot('素材を読み込み中…', 5);
+    setBoot('素材を読み込み中…', 30);
     return fetchJson('assets.json?v=' + V).then(function (idx) {
-      return fetchBytes('assets.pack', function (g, t) { setBoot('素材を読み込み中… ' + Math.round(g / 1024) + 'KB', 5 + 55 * g / t); })
+      return fetchBytes('assets.pack', function (g, t) { setBoot('素材を読み込み中… ' + Math.round(g / 1024) + 'KB', 30 + 35 * g / t); })
         .then(function (pack) {
           if (pack.length !== idx.size) throw new Error('assets.pack のサイズが一致しません(' + pack.length + ' / ' + idx.size + ')。キャッシュ違いの可能性があります');
-          setBoot('素材を展開中…', 62);
+          setBoot('素材を展開中…', 68);
           idx.files.forEach(function (f) {
             var path = '/' + f.p, dir = path.replace(/\/[^\/]*$/, '');
             if (dir) mkdirp(FS, dir);
@@ -352,7 +371,7 @@
           log('[素材] ' + idx.files.length + 'ファイルを展開');
         });
     }).then(function () {
-      setBoot('プログラムを読み込み中…', 75);
+      setBoot('プログラムを読み込み中…', 80);
       return fetchBytes(cfg.ax);
     }).then(function (ax) {
       FS.writeFile('/' + cfg.ax, ax);
@@ -511,11 +530,22 @@
     document.title = cfg.title || document.title;
     fit();
     setupModule();
-    var s = document.createElement('script');
-    s.src = 'hsp3dish.js?v=' + V; s.async = true;
-    s.onerror = function () { fatal('hsp3dish.js を読み込めません'); };
-    document.body.appendChild(s);
     setBoot('エンジンを読み込み中…', 2);
-  }).catch(function (e) { fatal('webconfig.json を読み込めません: ' + errText(e)); });
+    var prog = function (label, lo, hi) { return function (g, t) { setBoot(label + ' ' + Math.round(g / 1024) + 'KB', lo + (hi - lo) * g / t); }; };
+    return fetchBytes('hsp3dish.js', prog('エンジンを読み込み中…', 2, 8)).then(function (js) {
+      var head = new TextDecoder('utf-8').decode(js.subarray(0, 64)).trim().toLowerCase();
+      if (js.length < 2000 || head.indexOf('<') === 0) throw new Error('hsp3dish.js の中身が不正です(' + js.length + 'B。サーバーのエラーページかもしれません)');
+      return fetchBytes('hsp3dish.wasm', prog('エンジンを読み込み中…', 8, 30)).then(function (wasm) {
+        if (wasm.length < 1000 || wasm[0] !== 0 || wasm[1] !== 0x61 || wasm[2] !== 0x73 || wasm[3] !== 0x6d) throw new Error('hsp3dish.wasm の中身が不正です(' + wasm.length + 'B)');
+        Module.wasmBinary = wasm.buffer;     // 自分で取得したものを渡す(サーバーの配信種別・キャッシュの影響を受けない)
+        log('[エンジン] js ' + js.length + 'B / wasm ' + wasm.length + 'B');
+        var url = URL.createObjectURL(new Blob([js], { type: 'application/javascript' }));
+        var s = document.createElement('script');
+        s.src = url; s.async = true;
+        s.onerror = function () { fatal('エンジンの実行を開始できませんでした(hsp3dish.js)'); };
+        document.body.appendChild(s);
+      });
+    });
+  }).catch(function (e) { fatal(errText(e)); });
 
 })(typeof window !== 'undefined' ? window : globalThis);
