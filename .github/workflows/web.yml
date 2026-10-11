@@ -13,11 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: "1 設定を読む"
-        run: ./tools/build_web.sh config
+        run: bash tools/build_web.sh config
       - name: "2 公式OpenHSPを取得し hspcmp をビルド"
-        run: ./tools/build_web.sh openhsp
+        run: bash tools/build_web.sh openhsp
       - name: "3 HSPスクリプトを自動調整して .ax にコンパイル"
-        run: ./tools/build_web.sh compile
+        run: bash tools/build_web.sh compile
       - name: Emscripten のキャッシュ
         uses: actions/cache@v4
         with:
@@ -29,11 +29,11 @@ jobs:
           version: ${{ env.EM_VERSION }}
           actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
       - name: "5 公式ソースへ最小パッチ"
-        run: ./tools/build_web.sh patchsrc
+        run: bash tools/build_web.sh patchsrc
       - name: "6 hsp3dish.js をビルド(公式 makefile.emscripten)"
-        run: ./tools/build_web.sh buildjs
+        run: bash tools/build_web.sh buildjs
       - name: "7 配布フォルダを組み立ててzip化"
-        run: ./tools/build_web.sh assemble
+        run: bash tools/build_web.sh assemble
       - uses: actions/upload-artifact@v4
         with:
           name: hsp-web
