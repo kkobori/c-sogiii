@@ -397,7 +397,11 @@
     if (Q.get('noad') === '1' || !root.AdEngine) { log('[広告] 無効(?noad=1 または ad-engine.js なし)'); return; }
     var id = Q.get('adid') || cfg.adsenseClientId || '';
     var testing = Q.get('adtest') !== null ? Q.get('adtest') !== '0' : cfg.adsenseTest !== false;
-    ad = root.AdEngine.create({ clientId: id, testing: testing, log: log });
+    ad = root.AdEngine.create({
+      clientId: id, testing: testing, log: log,
+      onShowStart: function () { if (mml) mml.pauseForAd(); },     // 広告中はMMLのBGMを一時停止
+      onShowEnd: function () { if (mml) mml.resumeAfterAd(); }     // 終わったら続きから
+    });
     root.__hspAd = ad;
     log('[広告] ' + (id ? 'ID設定あり' : 'IDなし(広告は出ません)') + ' テスト=' + (testing ? 'ON' : 'OFF'));
     if (id) ad.init();

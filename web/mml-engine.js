@@ -193,6 +193,19 @@
       return -1;
     }
 
+    // 広告表示中: 再生中のMMLを一時停止し、広告が終わったら続きから再開する
+    var adPaused = [];
+    function pauseForAd() {
+      adPaused = [];
+      Object.keys(ch).forEach(function (k) { var c = ch[k]; if (c && c.playing) { adPaused.push(k | 0); mmlStop(k | 0); } });
+      if (adPaused.length) log('[MML] 広告のため一時停止 ch=' + adPaused.join(','));
+    }
+    function resumeAfterAd() {
+      var list = adPaused; adPaused = [];
+      list.forEach(function (n) { if (ch[n] && !ch[n].playing) mmlPlay(n); });
+      if (list.length) log('[MML] 広告終了 → 続きから再開 ch=' + list.join(','));
+    }
+
     // 画面が隠れたら止め、戻ったら再開(バッテリー・バックグラウンド再生の対策)
     function onVis(hidden) {
       if (!ctx) return;
@@ -200,7 +213,7 @@
     }
 
     return {
-      prepare: prepare, unlock: unlock, devcontrol: devcontrol, onVisibility: onVis,
+      prepare: prepare, pauseForAd: pauseForAd, resumeAfterAd: resumeAfterAd, unlock: unlock, devcontrol: devcontrol, onVisibility: onVis,
       state: st, _ch: ch, _ctx: function () { return ctx; }, parseTracks: parseTracks
     };
   }

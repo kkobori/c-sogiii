@@ -14,6 +14,9 @@
     var clientId = String(env.clientId || '').trim();
     var testing = env.testing !== false;
     var timeoutMs = env.loadTimeoutMs || 10000;
+    var onStart = env.onShowStart || function () {}, onEnd = env.onShowEnd || function () {};
+    var showing = false;
+    function endShow() { if (showing) { showing = false; try { onEnd(); } catch (e) {} } }
     var win = env.window || root;
     var doc = env.document || (typeof document !== 'undefined' ? document : null);
     var AD = { status: 0, lastError: null, pendingShowFn: null, resultReady: false, lastResultStat: 0, loads: 0, shown: 0 };
@@ -59,6 +62,7 @@
         if (showSettled) return; showSettled = true;
         AD.lastResultStat = ok ? 1 : -1; AD.resultReady = true; AD.status = 0;
         AD.pendingShowFn = null; AD.lastError = err || null;
+        endShow();
         log('[広告] 結果確定: ' + (ok ? '報酬あり' : '報酬なし') + (err ? ' (' + err + ')' : ''));
       }
       try {
@@ -85,7 +89,8 @@
       var fn = AD.pendingShowFn; AD.pendingShowFn = null;
       if (typeof fn !== 'function') { AD.resultReady = true; AD.lastResultStat = -1; AD.status = 0; return; }
       AD.shown++;
-      try { fn(); } catch (e) { AD.resultReady = true; AD.lastResultStat = -1; AD.status = 0; AD.lastError = String(e); }
+      showing = true; try { onStart(); } catch (e) {}
+      try { fn(); } catch (e) { AD.resultReady = true; AD.lastResultStat = -1; AD.status = 0; AD.lastError = String(e); endShow(); }
     }
 
     function devcontrol(cmd, p1) {
