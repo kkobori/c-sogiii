@@ -24,6 +24,10 @@
 	if stat=0 : return
 	mmstop n
 	return
+#deffunc mmstopall
+	devcontrol "mml_stopall"        ; MMLの全チャンネルを一時停止(位置は保存)
+	mmstop                          ; 公式側(mp3/wav)も全停止
+	return
 #deffunc mmvolx int n, int v
 	devcontrol "mml_vol", n, v
 	if stat=0 : return

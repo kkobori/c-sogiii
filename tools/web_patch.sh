@@ -12,6 +12,9 @@ sed -i -E 's/^([[:space:]]*debugonoff[[:space:]]*=[[:space:]]*)1([[:space:]]*(;.
 
 # 2) mmload/mmplay/mmstop/mmvol -> webmm の包み(mmloadx 等)。
 #    ::mmlt:: の曲は JS側のMMLエンジンへ、それ以外(mp3/wav)は公式の命令へ回る。行頭と ":" の直後だけを置き換える。
+# 引数なしの mmstop(=全チャンネル停止)は mmstopall に。これを先に置き換える(MMLも止めるため)
+sed -i -E 's/^([[:space:]]*)mmstop([[:space:]]*(;.*)?)$/\1mmstopall\2/' main.hsp
+sed -i -E ':b;s/(:[[:space:]]*)mmstop([[:space:]]*)(:|;|$)/\1mmstopall\2\3/;tb' main.hsp
 sed -i -E 's/^([[:space:]]*)(mmload|mmplay|mmstop|mmvol)([[:space:]])/\1\2x\3/' main.hsp
 sed -i -E ':a;s/(:[[:space:]]*)(mmload|mmplay|mmstop|mmvol)([[:space:]])/\1\2x\3/;ta' main.hsp
 
@@ -48,6 +51,6 @@ grep -q 'native_compat.hsp' main.hsp || sed -i '0,/#include "hsp3dish.as"/s//#in
 grep -q 'web_compat.hsp' main.hsp || sed -i '0,/#include "native_compat.hsp"/s//#include "native_compat.hsp"\n#include "web_compat.hsp"/' main.hsp
 grep -q '#include "web_compat.hsp"' main.hsp || { echo "web_patch: web_compat.hsp を差し込めませんでした" >&2; exit 4; }
 
-echo "web_patch: saveDir=/${SAVEDIR}/ mmloadx=$(grep -cE '(^|:)[[:space:]]*mmloadx' main.hsp) mmplayx=$(grep -cE '(^|:)[[:space:]]*mmplayx' main.hsp) admobshow16=$(grep -c 'admobshow16' main.hsp)"
+echo "web_patch: saveDir=/${SAVEDIR}/ mmloadx=$(grep -cE '(^|:)[[:space:]]*mmloadx' main.hsp) mmstopall=$(grep -cE '(^|:)[[:space:]]*mmstopall' main.hsp) mmplayx=$(grep -cE '(^|:)[[:space:]]*mmplayx' main.hsp) admobshow16=$(grep -c 'admobshow16' main.hsp)"
 LEFT=$(grep -nE '(^|[^A-Za-z0-9_"])(mmload|mmplay|mmstop|mmvol)[[:space:]]' main.hsp | grep -v '^[0-9]*:[[:space:]]*;' || true)
 [ -z "$LEFT" ] || { echo "web_patch: 置き換えできなかった mm 命令があります(未確認の書き方):"; echo "$LEFT" | head -10; }

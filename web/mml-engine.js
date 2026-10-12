@@ -184,6 +184,7 @@
         switch (cmd) {
           case 'mml_play': return mmlPlay(p1 | 0);
           case 'mml_stop': return mmlStop(p1 | 0);
+          case 'mml_stopall': Object.keys(ch).forEach(function (k) { mmlStop(k | 0); }); return 0;
           case 'mml_vol': return mmlVol(p1 | 0, p2);
           case 'mml_drop': return mmlDrop(p1 | 0);
           case 'mml_has': return ch[p1 | 0] ? 1 : 0;
