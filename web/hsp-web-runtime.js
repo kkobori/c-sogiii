@@ -389,6 +389,7 @@
 
   var mml = null;
   function prepareMml(FS) {
+    if (Q.get('nomml') === '1') { log('[MML] ?nomml=1 → MMLエンジンを使いません(切り分け用)'); return Promise.resolve(); }
     if (!root.MmlEngine || !root.HspSynth) { log('[MML] hsp-synth.js / mml-engine.js なし → MMLは無音'); return Promise.resolve(); }
     mml = root.MmlEngine.create({
       log: log, toast: toast,

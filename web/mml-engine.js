@@ -171,9 +171,11 @@
       return 0;
     }
 
+    var nlog = 0;
     function devcontrol(cmd, p1, p2, p3) {
       try {
         cmd = String(cmd);
+        if (nlog < 40) { nlog++; log('[MML] devcontrol ' + cmd + ' ' + p1 + ',' + p2 + ',' + p3); }
         if (cmd.indexOf('mml_load:') === 0) return mmlLoad(cmd.slice(9), p1 | 0, (p2 | 0) !== 0);
         switch (cmd) {
           case 'mml_play': return mmlPlay(p1 | 0);
