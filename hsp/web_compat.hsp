@@ -34,3 +34,13 @@
 	mmvol n, v
 	return
 #global
+
+; 広告表示の前後で、公式側(mp3/wav)の音も一時停止→続きから再開する(C++側の snd_adpause / snd_adresume)
+#module "webad"
+#deffunc admobshow16web local r
+	devcontrol "snd_adpause"
+	admobshow16
+	r=stat
+	devcontrol "snd_adresume"
+	return r
+#global

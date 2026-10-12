@@ -27,7 +27,7 @@ sed -i -E '/^[[:space:]]*d3wincy=[0-9]+[[:space:]]*$/{N;s/^([[:space:]]*d3wincy=
 
 # 4b) 広告(16)は待機つきの admobshow16 に置き換える。公式Webには AdMob が無く -1(失敗) が返るので、広告なしで先へ進む。
 #     (広告は第3弾でつなぐ)
-sed -i -E 's/devcontrol[[:space:]]+"AdMob"[[:space:]]*,[[:space:]]*16([^0-9]|$)/admobshow16\1/' main.hsp
+sed -i -E 's/devcontrol[[:space:]]+"AdMob"[[:space:]]*,[[:space:]]*16([^0-9]|$)/admobshow16web\1/' main.hsp
 
 # 5) Web用の分岐(case PLATFORM_wwwWEBGL)の最後に、公式Web向けの保存先を上書きで入れる
 #    - 素材は仮想FSの gdata/ (assets.pack から展開)

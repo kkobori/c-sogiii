@@ -110,6 +110,7 @@ nb = blk[:blk.rindex("\treturn -1;")] + "\treturn EM_ASM_INT({\n\t\tif ( typeof 
 open(p, "w", encoding="utf-8").write(s.replace(blk, nb))
 print("patched: makefile.emscripten(FS,ENV) / sysreq.cpp(範囲チェック) / hsp3dish.cpp(devcontrol転送)")
 PY
+  python3 "$ROOT/tools/web_patch_sound.py" . || fail "音まわりのパッチが当たりませんでした(公式側が変わった可能性)"
   git diff --stat | tail -3
   ;;
 
