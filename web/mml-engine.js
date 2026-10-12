@@ -176,7 +176,11 @@
       try {
         cmd = String(cmd);
         if (nlog < 40) { nlog++; log('[MML] devcontrol ' + cmd + ' ' + p1 + ',' + p2 + ',' + p3); }
-        if (cmd.indexOf('mml_load:') === 0) return mmlLoad(cmd.slice(9), p1 | 0, (p2 | 0) !== 0);
+        if (cmd.indexOf('mml_load:') === 0) {
+          var f = cmd.slice(9);
+          if (f.indexOf('::mmlt::') !== 0) return -1;      // MML以外(mp3/wav)は公式の命令へ
+          return mmlLoad(f.slice(8), p1 | 0, (p2 | 0) !== 0);
+        }
         switch (cmd) {
           case 'mml_play': return mmlPlay(p1 | 0);
           case 'mml_stop': return mmlStop(p1 | 0);
