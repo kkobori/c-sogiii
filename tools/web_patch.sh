@@ -10,6 +10,10 @@ cp main.hsp main.hsp.orig
 # 1) 製品モード
 sed -i -E 's/^([[:space:]]*debugonoff[[:space:]]*=[[:space:]]*)1([[:space:]]*(;.*)?)$/\10\2/' main.hsp
 
+# 1b) "::sound::" 接頭辞(ミニインタプリタ用: 音声ファイル指定)は、公式HSPには無いので取り除く。
+#     mmload "::sound::gdata/bgm/a.mp3",... → mmload "gdata/bgm/a.mp3",...  ("::sound::"+変数 も ""+変数 になって有効)
+sed -i -E 's/"::sound::/"/Ig' main.hsp
+
 # 2) mmload/mmplay/mmstop/mmvol -> webmm の包み(mmloadx 等)。
 #    ::mmlt:: の曲は JS側のMMLエンジンへ、それ以外(mp3/wav)は公式の命令へ回る。行頭と ":" の直後だけを置き換える。
 # 引数なしの mmstop(=全チャンネル停止)は mmstopall に。これを先に置き換える(MMLも止めるため)
