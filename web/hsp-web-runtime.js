@@ -395,17 +395,29 @@
   }
   // 戻るボタン(getreq SYSREQ_BACKBUTTON=1004): ブラウザの「戻る」/ Escape を、1回読むと消える通知にする。
   // スクリプトが一度でも読んだら有効化(それまでは通常どおり戻れる)。有効中は、戻るを押してもページを離れない。
-  var back = { enabled: false, pending: 0 };
+  var back = { enabled: false, pending: 0, depth: 0, pops: 0 };
+  function backPush(n) {
+    for (var i = 0; i < n; i++) { try { history.pushState({ hspBack: 1 }, '', location.href); back.depth++; } catch (e) { break; } }
+  }
+  function backNote(msg) {      // 戻る操作の記録は、ページが閉じられても残るよう保存する(診断パネルの「前回の記録」)
+    log('[戻る] ' + msg);
+    try { localStorage.setItem('hspweb_lastback', new Date().toLocaleTimeString() + ' ' + msg + ' (depth=' + back.depth + ' history=' + history.length + ')'); } catch (e) {}
+  }
   function backRead() {
     if (!back.enabled) {
       back.enabled = true;
-      try { history.pushState({ hspBack: 1 }, '', location.href); } catch (e) {}
+      backPush(5);       // 戻る用の足場を先に何段か積む(押すたびに1段ずつ消費する)
       root.addEventListener('popstate', function () {
-        back.pending = 1;
-        try { history.pushState({ hspBack: 1 }, '', location.href); } catch (e) {}
+        back.pending = 1; back.pops++; if (back.depth > 0) back.depth--;
+        backNote('戻る操作 ' + back.pops + '回目');
+        if (back.depth < 1) backPush(3);      // 足場が尽きた時の最後の保険
+      });
+      // 画面を触るたびに、足場を補充する(ユーザー操作の中で積んだ履歴は、ブラウザに飛ばされにくい)
+      ['pointerdown', 'touchend'].forEach(function (ev) {
+        document.addEventListener(ev, function () { if (back.depth < 3) backPush(5 - back.depth); }, { passive: true });
       });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') back.pending = 1; });
-      log('[戻る] スクリプトが戻るボタンを読んだので、戻る操作をゲーム内の通知に切り替えました');
+      backNote('スクリプトが戻るボタンを読んだので、戻る操作をゲーム内の通知に切り替えました');
     }
     var p = back.pending; back.pending = 0; return p;
   }
@@ -523,6 +535,7 @@
     if (s && (s.migrated || s.restored)) lines.push('移行 ' + s.migrated + '件 / 復旧 ' + s.restored + '件');
     lines.push('ファイル ' + files.length + '件:');
     files.forEach(function (f) { lines.push('  ' + f.name + '  ' + f.size + 'B  ' + new Date(f.mtime).toLocaleString()); });
+    try { var lb = localStorage.getItem('hspweb_lastback'); if (lb) lines.push('戻る操作の最後の記録: ' + lb); } catch (e) {}
     $('diagInfo').textContent = lines.join('\n');
     $('diagLog').value = LOGS.slice(-200).join('\n');
   }
