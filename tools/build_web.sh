@@ -96,7 +96,9 @@ if s.count(old) != 1: sys.exit("makefile.emscripten: 期待した箇所が見つ
 open(p, "w", encoding="utf-8").write(s.replace(old, "'ccall', 'cwrap', 'FS', 'ENV']"))
 # (2) getreq の範囲外ID(1000番台=広告/戻るボタン等)で配列の外を読まないようにする
 p = "src/hsp3dish/sysreq.cpp"; s = open(p, encoding="utf-8").read()
-s2, n = re.subn(r"(int\s+GetSysReq\s*\(\s*int\s+reqid\s*\)\s*\{)", r"\1\n\tif ( reqid < 0 || reqid >= SYSREQ_MAX ) return 0;", s, count=1)
+back = "\n#ifdef __EMSCRIPTEN__\n\tif ( reqid == 1004 ) return EM_ASM_INT({ return (typeof Module.hspBackRead === 'function') ? (Module.hspBackRead() | 0) : 0; });\n#endif"
+s2, n = re.subn(r"(int\s+GetSysReq\s*\(\s*int\s+reqid\s*\)\s*\{)", lambda m: m.group(1) + back + "\n\tif ( reqid < 0 || reqid >= SYSREQ_MAX ) return 0;", s, count=1)
+s2 = s2.replace('#include "sysreq.h"', '#include "sysreq.h"\n#ifdef __EMSCRIPTEN__\n#include <emscripten.h>\n#endif', 1)
 if n != 1: sys.exit("sysreq.cpp: GetSysReq が見つかりません")
 open(p, "w", encoding="utf-8").write(s2)
 # (3) devcontrol の未知コマンドを JS側(Module.hspDevControl)へ転送する(MML・広告用の橋)。無ければ従来どおり -1

@@ -393,6 +393,23 @@
     if (cmd === 'AdMob') return ad ? ad.devcontrol(cmd, a, b, c) : -1;
     return mml ? mml.devcontrol(cmd, a, b, c) : -1;
   }
+  // 戻るボタン(getreq SYSREQ_BACKBUTTON=1004): ブラウザの「戻る」/ Escape を、1回読むと消える通知にする。
+  // スクリプトが一度でも読んだら有効化(それまでは通常どおり戻れる)。有効中は、戻るを押してもページを離れない。
+  var back = { enabled: false, pending: 0 };
+  function backRead() {
+    if (!back.enabled) {
+      back.enabled = true;
+      try { history.pushState({ hspBack: 1 }, '', location.href); } catch (e) {}
+      root.addEventListener('popstate', function () {
+        back.pending = 1;
+        try { history.pushState({ hspBack: 1 }, '', location.href); } catch (e) {}
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') back.pending = 1; });
+      log('[戻る] スクリプトが戻るボタンを読んだので、戻る操作をゲーム内の通知に切り替えました');
+    }
+    var p = back.pending; back.pending = 0; return p;
+  }
+  root.__hspBackRead = backRead;
   function setupAds() {
     if (Q.get('noad') === '1' || !root.AdEngine) { log('[広告] 無効(?noad=1 または ad-engine.js なし)'); return; }
     var id = Q.get('adid') || cfg.adsenseClientId || '';
@@ -437,6 +454,7 @@
       print: function (t) { log('[out] ' + Array.prototype.slice.call(arguments).join(' ')); },
       printErr: function (t) { log('[err] ' + Array.prototype.slice.call(arguments).join(' ')); },
       hspDevControl: hspDev,
+      hspBackRead: backRead,
       onAbort: function (w) { fatal('実行が中断されました: ' + w); },
       onExit: function (code) {
         log('[終了] code=' + code);
