@@ -387,6 +387,30 @@
     c.style.height = Math.floor(cfg.wy * s) + 'px';
   }
 
+  var mml = null;
+  function prepareMml(FS) {
+    if (!root.MmlEngine || !root.HspSynth) { log('[MML] hsp-synth.js / mml-engine.js なし → MMLは無音'); return Promise.resolve(); }
+    mml = root.MmlEngine.create({
+      log: log, toast: toast,
+      readText: function (p) {
+        var c = [p, '/' + p.replace(/^\/+/, '')];
+        for (var i = 0; i < c.length; i++) { try { return new TextDecoder('utf-8').decode(FS.readFile(c[i])); } catch (e) {} }
+        return null;
+      }
+    });
+    Module.hspDevControl = mml.devcontrol;
+    root.__hspMml = mml;
+    var list = cfg.mml || [];
+    if (!list.length) return Promise.resolve();
+    return mml.prepare(list, function (i, n, p) { setBoot('音楽を準備中… ' + i + '/' + n, 90 + 9 * i / n); }).then(function (st) {
+      log('[MML] 準備完了 ok=' + st.loaded + ' 失敗=' + st.failed + ' 合成時間=' + st.synthMs + 'ms');
+      if (st.failed) toast('一部の曲を準備できませんでした(無音になります)');
+    });
+  }
+  document.addEventListener('visibilitychange', function () { if (mml) mml.onVisibility(document.hidden); });
+  // iOS等で音が止められたときの保険: 画面を触るたびに再開を試みる
+  ['pointerdown', 'touchend'].forEach(function (ev) { document.addEventListener(ev, function () { if (mml && el.boot.style.display === 'none') mml.unlock(); }, { passive: true }); });
+
   function setupModule() {
     Module = {
       canvas: el.canvas,
@@ -418,11 +442,14 @@
         Module.addRunDependency('hsp-assets');
         loadAssets(FS).then(function () {
           Module.removeRunDependency('hsp-assets');
+          return prepareMml(FS);
+        }).then(function () {
           setBoot('準備ができました', 100);
           Module.addRunDependency('hsp-start');
           el.btn.style.display = 'inline-block';
           el.btn.onclick = function () {
             el.btn.disabled = true;
+            if (mml) mml.unlock();            // 音は、このタップの中で有効にする必要がある
             el.boot.style.display = 'none';
             fit();
             Module.removeRunDependency('hsp-start');

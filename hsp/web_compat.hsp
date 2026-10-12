@@ -2,3 +2,33 @@
 ; スクリプト内の "case PLATFORM_wwwWEBGL" を、公式Webの getreq SYSREQ_PLATFORM (=3) に一致させる。
 #const global PLATFORM_wwwWEBGL 3
 #const global PLATFORM_wwwANDROID 102
+
+; MML(::mmlt::) 用の包み。JS側(mml-engine.js)が devcontrol で受ける。
+; JS側が担当するチャンネルなら 0 を返して処理済み、担当外(-1)なら公式の mm 命令へ回す。
+; JS側が無い(devcontrolが-1を返す)場合も、そのまま公式の命令になる。
+#module "webmm"
+#deffunc mmloadx str f, int n, int o
+	if strmid(f,0,8)="::mmlt::" {
+		devcontrol "mml_load:"+strmid(f,8,4000), n, o
+		if stat=0 : return
+		return                      ; MML非対応の環境では無音で読み飛ばす
+	}
+	devcontrol "mml_drop", n        ; このチャンネルがMML用だったら解放(担当外なら何も起きない)
+	mmloadsafe f, n, o
+	return
+#deffunc mmplayx int n
+	devcontrol "mml_play", n
+	if stat=0 : return
+	mmplay n
+	return
+#deffunc mmstopx int n
+	devcontrol "mml_stop", n
+	if stat=0 : return
+	mmstop n
+	return
+#deffunc mmvolx int n, int v
+	devcontrol "mml_vol", n, v
+	if stat=0 : return
+	mmvol n, v
+	return
+#global

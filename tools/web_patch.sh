@@ -10,9 +10,10 @@ cp main.hsp main.hsp.orig
 # 1) 製品モード
 sed -i -E 's/^([[:space:]]*debugonoff[[:space:]]*=[[:space:]]*)1([[:space:]]*(;.*)?)$/\10\2/' main.hsp
 
-# 2) mmload -> mmloadsafe (読み込めない音源でエラー終了しない)。
-#    第1弾: MML(::mmlt::)も一旦ここで安全に読み飛ばす(音なし)。第2弾でMML再生をつなぐ。
-sed -i -E 's/^([[:space:]]*)mmload([[:space:]])/\1mmloadsafe\2/' main.hsp
+# 2) mmload/mmplay/mmstop/mmvol -> webmm の包み(mmloadx 等)。
+#    ::mmlt:: の曲は JS側のMMLエンジンへ、それ以外(mp3/wav)は公式の命令へ回る。行頭と ":" の直後だけを置き換える。
+sed -i -E 's/^([[:space:]]*)(mmload|mmplay|mmstop|mmvol)([[:space:]])/\1\2x\3/' main.hsp
+sed -i -E ':a;s/(:[[:space:]]*)(mmload|mmplay|mmstop|mmvol)([[:space:]])/\1\2x\3/;ta' main.hsp
 
 # 3) 画面外バッファ(gsel 1以上)の高速化キャッシュは無効化して通常描画にする (Android版と同じ処置)
 sed -i -E 's/^([[:space:]]*pdcEligible=)1([[:space:]]*(;.*)?)$/\10\2/' main.hsp
@@ -47,4 +48,6 @@ grep -q 'native_compat.hsp' main.hsp || sed -i '0,/#include "hsp3dish.as"/s//#in
 grep -q 'web_compat.hsp' main.hsp || sed -i '0,/#include "native_compat.hsp"/s//#include "native_compat.hsp"\n#include "web_compat.hsp"/' main.hsp
 grep -q '#include "web_compat.hsp"' main.hsp || { echo "web_patch: web_compat.hsp を差し込めませんでした" >&2; exit 4; }
 
-echo "web_patch: saveDir=/${SAVEDIR}/ mmloadsafe=$(grep -cE '^[[:space:]]*mmloadsafe' main.hsp) admobshow16=$(grep -c 'admobshow16' main.hsp)"
+echo "web_patch: saveDir=/${SAVEDIR}/ mmloadx=$(grep -cE '(^|:)[[:space:]]*mmloadx' main.hsp) mmplayx=$(grep -cE '(^|:)[[:space:]]*mmplayx' main.hsp) admobshow16=$(grep -c 'admobshow16' main.hsp)"
+LEFT=$(grep -nE '(^|[^A-Za-z0-9_"])(mmload|mmplay|mmstop|mmvol)[[:space:]]' main.hsp | grep -v '^[0-9]*:[[:space:]]*;' || true)
+[ -z "$LEFT" ] || { echo "web_patch: 置き換えできなかった mm 命令があります(未確認の書き方):"; echo "$LEFT" | head -10; }

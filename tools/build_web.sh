@@ -46,7 +46,7 @@ def num(k, d):
         return d
 cfg = {"title": title, "saveDir": save, "ax": "main.ax",
        "wx": num("wx", 480), "wy": num("wy", 800), "autoscale": num("autoscale", 0),
-       "fps": num("fps", 0), "limitStep": num("limitStep", 5000)}
+       "fps": num("fps", 0), "limitStep": num("limitStep", 200000)}
 json.dump(cfg, open(os.path.join(work, "webconfig.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 open(os.path.join(work, "mainscript"), "w").write(app.get("mainScript", "main.hsp"))
 safe = re.sub(r"[^A-Za-z0-9_\-]", "_", title) or "app"
@@ -93,7 +93,14 @@ p = "src/hsp3dish/sysreq.cpp"; s = open(p, encoding="utf-8").read()
 s2, n = re.subn(r"(int\s+GetSysReq\s*\(\s*int\s+reqid\s*\)\s*\{)", r"\1\n\tif ( reqid < 0 || reqid >= SYSREQ_MAX ) return 0;", s, count=1)
 if n != 1: sys.exit("sysreq.cpp: GetSysReq が見つかりません")
 open(p, "w", encoding="utf-8").write(s2)
-print("patched: makefile.emscripten(FS,ENV) / sysreq.cpp(範囲チェック)")
+# (3) devcontrol の未知コマンドを JS側(Module.hspDevControl)へ転送する(MML・広告用の橋)。無ければ従来どおり -1
+p = "src/hsp3dish/emscripten/hsp3dish.cpp"; s = open(p, encoding="utf-8").read()
+m = re.search(r"static int hsp3dish_devcontrol\( char \*cmd, int p1, int p2, int p3 \)\s*\{.*?\n\treturn -1;\n\}", s, re.S)
+if not m: sys.exit("hsp3dish.cpp: hsp3dish_devcontrol が見つかりません")
+blk = m.group(0)
+nb = blk[:blk.rindex("\treturn -1;")] + "\treturn EM_ASM_INT({\n\t\tif ( typeof Module.hspDevControl !== 'function' ) return -1;\n\t\ttry { var r = Module.hspDevControl(UTF8ToString($0), $1, $2, $3); return (r|0); } catch (e) { console.log('hspDevControl', e); return -1; }\n\t}, cmd, p1, p2, p3);\n}"
+open(p, "w", encoding="utf-8").write(s.replace(blk, nb))
+print("patched: makefile.emscripten(FS,ENV) / sysreq.cpp(範囲チェック) / hsp3dish.cpp(devcontrol転送)")
 PY
   git diff --stat | tail -3
   ;;
@@ -115,13 +122,18 @@ assemble)
   python3 "$ROOT/tools/web_pack_assets.py" "$ASSETS" "$DIST" || fail "素材のパックに失敗(android/app/src/main/assets を確認)"
   cp "$WORK/openhsp/hsp3dish.js" "$WORK/openhsp/hsp3dish.wasm" "$DIST/"
   cp "$ROOT/hsp/main.ax" "$DIST/main.ax"
-  cp "$ROOT/web/hsp-web-runtime.js" "$ROOT/web/htaccess_sample.txt" "$DIST/"
+  cp "$ROOT/web/hsp-web-runtime.js" "$ROOT/web/mml-engine.js" "$ROOT/web/htaccess_sample.txt" "$DIST/"
+  if [ -f "$ASSETS/hsp-synth.js" ]; then cp "$ASSETS/hsp-synth.js" "$DIST/"; else echo "注意: hsp-synth.js が assets に無いので MML は無音になります"; fi
   cp "$WORK/openhsp/LICENSE" "$DIST/LICENSE_OpenHSP.txt"
   python3 - "$ROOT" "$WORK" "$DIST" "$BUILD" <<'PY' || fail "配布ファイルの生成に失敗"
 import json, sys
 root, work, dist, build = sys.argv[1:5]
 cfg = json.load(open(work + "/webconfig.json", encoding="utf-8"))
 cfg["build"] = build
+import re
+src = open(root + "/hsp/main.hsp", encoding="utf-8", errors="replace").read()
+cfg["mml"] = sorted(set(re.findall(r"::mmlt::([^\"\r\n]+)\"", src)))
+print("MML曲:", cfg["mml"])
 json.dump(cfg, open(dist + "/webconfig.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 t = open(root + "/web/index.template.html", encoding="utf-8").read()
 esc = lambda x: x.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
