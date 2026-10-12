@@ -101,6 +101,11 @@ a{color:var(--acc)}
   <div style="flex:1"><label>画面の高さ</label><input type="number" id="webWy" placeholder="800"></div></div>
   <div class="row"><div style="flex:1"><label>1フレームの最大ステップ</label><input type="number" id="webLimitStep" placeholder="200000"></div>
   <div style="flex:1"><label>FPS (0=自動)</label><input type="number" id="webFps" placeholder="0"></div></div>
+  <label>AdSense パブリッシャーID (ca-pub-…。空欄=広告なし)</label>
+  <input type="text" id="webAdsenseId" autocapitalize="off" autocomplete="off" placeholder="ca-pub-1234567890123456">
+  <label>広告のモード</label>
+  <select id="webAdsenseMode"><option value="test">テスト広告</option><option value="live">本番広告</option></select>
+  <div class="hint">本番広告にするのは、H5広告が承認され、サイトの公開ドメインで確認してからにしてください。</div>
   <div class="hint">動きが遅いときは、ビルドし直さなくても、ページのURLの後ろに ?step=20000 のように付けて試せます。</div>
 </div></details>
 
@@ -113,7 +118,7 @@ a{color:var(--acc)}
 <script>
 const $ = id => document.getElementById(id);
 const K = 'hsp_native_pusher_v1';
-const FIELDS = ['target','webSaveDir','webLimitStep','webFps','webWx','webWy','mainScript','pat','owner','repo','packageName','appName','versionCode','versionName','orientation','adAppId','adReward','adDevices','adCooldown'];
+const FIELDS = ['target','webSaveDir','webLimitStep','webFps','webAdsenseId','webAdsenseMode','webWx','webWy','mainScript','pat','owner','repo','packageName','appName','versionCode','versionName','orientation','adAppId','adReward','adDevices','adCooldown'];
 
 function logLine(s){ const e=$('log'); e.textContent += '['+new Date().toLocaleTimeString()+'] '+s+'\n'; e.scrollTop=e.scrollHeight; }
 function save(){ try{ const o={}; FIELDS.forEach(f=>o[f]=$(f).value); o.adDebug=$('adDebug').checked; o.adTesting=$('adTesting').checked; localStorage.setItem(K,JSON.stringify(o)); }catch(e){} }
@@ -136,12 +141,15 @@ function webJson(){
   const o={}; const v=id=>$(id).value.trim();
   if(v('webSaveDir')) o.saveDir=v('webSaveDir');
   [['webWx','wx'],['webWy','wy'],['webLimitStep','limitStep'],['webFps','fps']].forEach(([id,k])=>{ if(v(id)!==''&&!isNaN(parseInt(v(id),10))) o[k]=parseInt(v(id),10); });
+  if(v('webAdsenseId')) o.adsenseClientId=v('webAdsenseId');
+  o.adsenseTest=($('webAdsenseMode').value!=='live');
   return o;
 }
 function validate(){
   const a=appJson();
   if(!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/.test(a.packageName)) throw new Error('パッケージ名の形式が不正です (例: tv.hsp.myapp)');
   if(!/^[\w.\-]+\.hsp$/.test(a.mainScript)) throw new Error('メインスクリプト名は 英数字.hsp の形式にしてください');
+  if($('webAdsenseId').value.trim() && !/^(ca-)?pub-[0-9]{6,32}$/.test($('webAdsenseId').value.trim())) throw new Error('AdSenseパブリッシャーIDは ca-pub-数字 の形で入力してください');
   if($('webSaveDir').value.trim() && !/^[A-Za-z0-9_\-]{1,64}$/.test($('webSaveDir').value.trim())) throw new Error('保存フォルダ名は 英数字・_・- のみ(64文字まで)');
   const d=adJson();
   if(d.appId && !/^ca-app-pub-\d+~\d+$/.test(d.appId)) throw new Error('AdMobアプリIDの形式が不正です (ca-app-pub-数字~数字)');

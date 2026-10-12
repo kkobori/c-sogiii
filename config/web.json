@@ -1,3 +1,4 @@
 {
-  "limitStep": 200000
+  "limitStep": 200000,
+  "adsenseTest": true
 }

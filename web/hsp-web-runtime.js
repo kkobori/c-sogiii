@@ -387,7 +387,21 @@
     c.style.height = Math.floor(cfg.wy * s) + 'px';
   }
 
-  var mml = null;
+  var mml = null, ad = null;
+  // devcontrol の橋: "AdMob" は広告へ、それ以外(mml_*)はMMLへ
+  function hspDev(cmd, a, b, c) {
+    if (cmd === 'AdMob') return ad ? ad.devcontrol(cmd, a, b, c) : -1;
+    return mml ? mml.devcontrol(cmd, a, b, c) : -1;
+  }
+  function setupAds() {
+    if (Q.get('noad') === '1' || !root.AdEngine) { log('[広告] 無効(?noad=1 または ad-engine.js なし)'); return; }
+    var id = Q.get('adid') || cfg.adsenseClientId || '';
+    var testing = Q.get('adtest') !== null ? Q.get('adtest') !== '0' : cfg.adsenseTest !== false;
+    ad = root.AdEngine.create({ clientId: id, testing: testing, log: log });
+    root.__hspAd = ad;
+    log('[広告] ' + (id ? 'ID設定あり' : 'IDなし(広告は出ません)') + ' テスト=' + (testing ? 'ON' : 'OFF'));
+    if (id) ad.init();
+  }
   function prepareMml(FS) {
     if (Q.get('nomml') === '1') { log('[MML] ?nomml=1 → MMLエンジンを使いません(切り分け用)'); return Promise.resolve(); }
     if (!root.MmlEngine || !root.HspSynth) { log('[MML] hsp-synth.js / mml-engine.js なし → MMLは無音'); return Promise.resolve(); }
@@ -399,7 +413,6 @@
         return null;
       }
     });
-    Module.hspDevControl = mml.devcontrol;
     root.__hspMml = mml;
     var list = cfg.mml || [];
     if (!list.length) return Promise.resolve();
@@ -419,6 +432,7 @@
       locateFile: function (p) { return p + '?v=' + V; },
       print: function (t) { log('[out] ' + Array.prototype.slice.call(arguments).join(' ')); },
       printErr: function (t) { log('[err] ' + Array.prototype.slice.call(arguments).join(' ')); },
+      hspDevControl: hspDev,
       onAbort: function (w) { fatal('実行が中断されました: ' + w); },
       onExit: function (code) {
         log('[終了] code=' + code);
@@ -557,6 +571,7 @@
     if (!cfg.wx || !cfg.wy) { cfg.wx = 480; cfg.wy = 800; }
     document.title = cfg.title || document.title;
     fit();
+    setupAds();
     setupModule();
     setBoot('エンジンを読み込み中…', 2);
     var prog = function (label, lo, hi) { return function (g, t) { setBoot(label + ' ' + Math.round(g / 1024) + 'KB', lo + (hi - lo) * g / t); }; };

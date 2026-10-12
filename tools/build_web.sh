@@ -47,6 +47,12 @@ def num(k, d):
 cfg = {"title": title, "saveDir": save, "ax": "main.ax",
        "wx": num("wx", 480), "wy": num("wy", 800), "autoscale": num("autoscale", 0),
        "fps": num("fps", 0), "limitStep": num("limitStep", 200000)}
+adid = str(web.get("adsenseClientId") or "").strip()
+if adid and not re.fullmatch(r"(ca-)?pub-[0-9]{6,32}", adid):
+    sys.exit("adsenseClientId は ca-pub-数字 の形式で: " + adid)
+if adid and not adid.startswith("ca-"): adid = "ca-" + adid
+cfg["adsenseClientId"] = adid
+cfg["adsenseTest"] = bool(web.get("adsenseTest", True))
 json.dump(cfg, open(os.path.join(work, "webconfig.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 open(os.path.join(work, "mainscript"), "w").write(app.get("mainScript", "main.hsp"))
 safe = re.sub(r"[^A-Za-z0-9_\-]", "_", title) or "app"
@@ -122,7 +128,7 @@ assemble)
   python3 "$ROOT/tools/web_pack_assets.py" "$ASSETS" "$DIST" || fail "素材のパックに失敗(android/app/src/main/assets を確認)"
   cp "$WORK/openhsp/hsp3dish.js" "$WORK/openhsp/hsp3dish.wasm" "$DIST/"
   cp "$ROOT/hsp/main.ax" "$DIST/main.ax"
-  cp "$ROOT/web/hsp-web-runtime.js" "$ROOT/web/mml-engine.js" "$ROOT/web/htaccess_sample.txt" "$DIST/"
+  cp "$ROOT/web/hsp-web-runtime.js" "$ROOT/web/mml-engine.js" "$ROOT/web/ad-engine.js" "$ROOT/web/htaccess_sample.txt" "$DIST/"
   if [ -f "$ASSETS/hsp-synth.js" ]; then cp "$ASSETS/hsp-synth.js" "$DIST/"; else echo "注意: hsp-synth.js が assets に無いので MML は無音になります"; fi
   cp "$WORK/openhsp/LICENSE" "$DIST/LICENSE_OpenHSP.txt"
   python3 - "$ROOT" "$WORK" "$DIST" "$BUILD" <<'PY' || fail "配布ファイルの生成に失敗"
