@@ -13,7 +13,7 @@ hsp/main.hsp →(web_patch.sh で最小の自動調整)→ 公式 hspcmp → mai
 4. 成功すると <アプリ名>-web.zip が保存される。失敗したら、画面に出た「失敗ステップ」と「理由」を教えてください。
 5. zip を解凍して、サーバーのテスト用フォルダ(例: https://koborisoft.com/sogiii_test/)に中身をそのまま置く。
    - index.html / hsp-web-runtime.js / hsp3dish.js / hsp3dish.wasm / main.ax / assets.* / webconfig.json を同じ場所に。
-6. スマホで https://koborisoft.com/sogiii_test/?diag=1 を開く。右上の ⚙ で保存状態とログが見える。
+6. スマホで https://koborisoft.com/sogiii_test/?diag=1 を開く。右上の ⚙ で保存状態とログが見える。「個別ファイル」の一覧では、ファイルごとに 書き出し(そのままのファイルで保存)/ 読み込み(選んだファイルで上書き。元は .bak に退避)ができる。
 
 ## 確認してほしいこと(未確認の項目)
 - 起動して、タイトル〜ゲームが動くか(画面サイズ・タッチ・速度)

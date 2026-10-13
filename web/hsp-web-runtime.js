@@ -253,6 +253,19 @@
       markDirty('import'); flushNow('import');
       return n;
     }
+    function okName(name) { return typeof name === 'string' && /^[A-Za-z0-9_.\-]+$/.test(name) && name.charAt(0) !== '.'; }
+    function exportFile(name) {
+      if (!okName(name)) throw new Error('ファイル名が不正です');
+      if (!exists(DIR + '/' + name)) throw new Error(name + ' がありません');
+      return FS.readFile(DIR + '/' + name);
+    }
+    function importFile(name, bytes) {
+      if (!okName(name)) throw new Error('ファイル名が不正です');
+      if (!st.ready) throw new Error('保存の準備ができていません');
+      FS.writeFile(DIR + '/' + name, bytes);                          // FS.open フック経由なので現在の内容は .bak に退避される
+      markDirty('import1'); flushNow('import1');
+      return bytes.length;
+    }
     function restoreFromBak(name) {
       var bak = DIR + '/' + name + '.bak';
       if (!exists(bak)) throw new Error(name + '.bak がありません');
@@ -263,7 +276,7 @@
 
     return {
       install: install, state: st, list: list, signature: signature, flush: flush, flushNow: flushNow,
-      exportAll: exportAll, importAll: importAll, restoreFromBak: restoreFromBak, stop: stop, dir: DIR,
+      exportAll: exportAll, importAll: importAll, exportFile: exportFile, importFile: importFile, restoreFromBak: restoreFromBak, stop: stop, dir: DIR,
       _onPopulated: onPopulated
     };
   }
@@ -537,16 +550,36 @@
     files.forEach(function (f) { lines.push('  ' + f.name + '  ' + f.size + 'B  ' + new Date(f.mtime).toLocaleString()); });
     try { var lb = localStorage.getItem('hspweb_lastback'); if (lb) lines.push('戻る操作の最後の記録: ' + lb); } catch (e) {}
     $('diagInfo').textContent = lines.join('\n');
+    renderDiagFiles(files);
     $('diagLog').value = LOGS.slice(-200).join('\n');
   }
+  var diagFilesKey = null;
+  function renderDiagFiles(files) {
+    var box = $('diagFiles'); if (!box) return;
+    var key = files.map(function (f) { return f.name + ':' + f.size + ':' + f.mtime; }).join('|');
+    if (key === diagFilesKey) return;
+    diagFilesKey = key;
+    box.textContent = '';
+    if (!files.length) { box.textContent = 'ファイルはまだありません'; return; }
+    files.forEach(function (f) {
+      var row = document.createElement('div'); row.className = 'dgRow';
+      var nm = document.createElement('span'); nm.className = 'dgName'; nm.textContent = f.name + '  ' + f.size + 'B';
+      var b1 = document.createElement('button'); b1.textContent = '書き出し'; b1.setAttribute('data-act', 'exp'); b1.setAttribute('data-name', f.name);
+      var b2 = document.createElement('button'); b2.textContent = '読み込み'; b2.setAttribute('data-act', 'imp'); b2.setAttribute('data-name', f.name);
+      row.appendChild(nm); row.appendChild(b1); row.appendChild(b2); box.appendChild(row);
+    });
+  }
+  var dgImportName = null;
   function buildDiag() {
     var b = document.createElement('button'); b.id = 'diagBtn'; b.textContent = '⚙'; document.body.appendChild(b);
     var d = document.createElement('div'); d.id = 'diag';
     d.innerHTML = '<div id="diagHead"><b>診断</b><button id="diagClose">閉じる</button></div>' +
       '<pre id="diagInfo"></pre>' +
+      '<div id="diagFilesHead">個別ファイル(1つずつ 書き出し / 読み込み)</div><div id="diagFiles"></div>' +
       '<div id="diagBtns"><button id="dgSave">今すぐ保存</button><button id="dgExp">バックアップ書き出し</button>' +
       '<button id="dgImp">バックアップ読み込み</button><button id="dgBak">.bakから戻す</button><button id="dgCopy">ログをコピー</button></div>' +
       '<input id="dgFile" type="file" accept=".json,application/json" style="display:none">' +
+      '<input id="dgFileOne" type="file" style="display:none">' +
       '<textarea id="diagLog" readonly></textarea>';
     document.body.appendChild(d);
     b.onclick = function () { diagOpen = true; d.style.display = 'block'; renderDiag(); };
@@ -571,6 +604,33 @@
         renderDiag();
       };
       rd.readAsText(f);
+    };
+    $('diagFiles').onclick = function (ev) {
+      var t = ev.target; if (!t || !t.getAttribute) return;
+      var act = t.getAttribute('data-act'), name = t.getAttribute('data-name');
+      if (!act || !name || !layer) return;
+      if (act === 'exp') {
+        try {
+          var bytes = layer.exportFile(name), blob = new Blob([bytes], { type: 'application/octet-stream' });
+          var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+          document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); URL.revokeObjectURL(a.href); }, 3000);
+          toast(name + ' を書き出しました (' + bytes.length + 'B)');
+        } catch (e) { toast('書き出し失敗: ' + errText(e)); }
+      } else if (act === 'imp') {
+        dgImportName = name; $('dgFileOne').value = ''; $('dgFileOne').click();
+      }
+    };
+    $('dgFileOne').onchange = function () {
+      var f = this.files[0], name = dgImportName; dgImportName = null;
+      if (!f || !name) return;
+      if (!root.confirm(name + ' を「' + f.name + '」の内容で上書きします。\n今の内容は ' + name + '.bak に残ります。よろしいですか?')) return;
+      var rd = new FileReader();
+      rd.onload = function () {
+        try { var n = layer.importFile(name, new Uint8Array(rd.result)); toast(name + ' を読み込みました (' + n + 'B)。再読み込みしてください'); }
+        catch (e) { toast('読み込み失敗: ' + errText(e)); }
+        renderDiag();
+      };
+      rd.readAsArrayBuffer(f);
     };
     $('dgBak').onclick = function () {
       if (!layer) return;

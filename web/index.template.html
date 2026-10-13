@@ -27,6 +27,12 @@ canvas#canvas{display:block;background:#000;outline:none;touch-action:none}
 #diag{position:fixed;inset:0;z-index:96;background:rgba(8,12,18,.97);display:none;overflow:auto;padding:12px;touch-action:pan-y;-webkit-user-select:text;user-select:text}
 #diagHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 #diag button{padding:9px 12px;border:0;border-radius:8px;background:#2f6fd6;color:#fff;font:inherit;margin:4px 6px 0 0}
+#diagFilesHead{margin:10px 0 4px;color:#93a1b3;font-size:13px}
+#diagFiles{background:#0b0f14;border-radius:8px;padding:4px 8px;font:12px/1.5 ui-monospace,Menlo,monospace;color:#cfd8e3}
+#diagFiles .dgRow{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:4px 0;border-bottom:1px solid #1d2632}
+#diagFiles .dgRow:last-child{border-bottom:0}
+#diagFiles .dgName{flex:1 1 140px;word-break:break-all}
+#diagFiles button{margin:0;padding:7px 10px}
 #diagInfo{white-space:pre-wrap;word-break:break-all;font:12px/1.5 ui-monospace,Menlo,monospace;color:#b8f5c8;background:#0b0f14;padding:8px;border-radius:8px}
 #diagLog{width:100%;height:42vh;margin-top:10px;background:#0b0f14;color:#cfd8e3;border:1px solid #2c3745;border-radius:8px;font:11px/1.4 ui-monospace,Menlo,monospace;box-sizing:border-box}
 </style>
