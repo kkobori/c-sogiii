@@ -576,10 +576,12 @@
     d.innerHTML = '<div id="diagHead"><b>診断</b><button id="diagClose">閉じる</button></div>' +
       '<pre id="diagInfo"></pre>' +
       '<div id="diagFilesHead">個別ファイル(1つずつ 書き出し / 読み込み)</div><div id="diagFiles"></div>' +
+      '<div><button id="dgAdd">ファイルを選んで追加</button></div>' +
       '<div id="diagBtns"><button id="dgSave">今すぐ保存</button><button id="dgExp">バックアップ書き出し</button>' +
       '<button id="dgImp">バックアップ読み込み</button><button id="dgBak">.bakから戻す</button><button id="dgCopy">ログをコピー</button></div>' +
       '<input id="dgFile" type="file" accept=".json,application/json" style="display:none">' +
       '<input id="dgFileOne" type="file" style="display:none">' +
+      '<input id="dgFileAdd" type="file" multiple style="display:none">' +
       '<textarea id="diagLog" readonly></textarea>';
     document.body.appendChild(d);
     b.onclick = function () { diagOpen = true; d.style.display = 'block'; renderDiag(); };
@@ -631,6 +633,30 @@
         renderDiag();
       };
       rd.readAsArrayBuffer(f);
+    };
+    $('dgAdd').onclick = function () { if (!layer) return; $('dgFileAdd').value = ''; $('dgFileAdd').click(); };
+    $('dgFileAdd').onchange = function () {
+      var fs = Array.prototype.slice.call(this.files || []); if (!fs.length || !layer) return;
+      var have = {}; layer.list().forEach(function (x) { have[x.name] = 1; });
+      var todo = [], bad = [], over = [];
+      fs.forEach(function (f) {
+        if (!/^[A-Za-z0-9_.\-]+$/.test(f.name) || f.name.charAt(0) === '.') { bad.push(f.name); return; }
+        todo.push(f); if (have[f.name]) over.push(f.name);
+      });
+      if (bad.length) toast('名前が使えないので飛ばします(英数字・_・-・. のみ): ' + bad.join(', '));
+      if (!todo.length) return;
+      if (over.length && !root.confirm('同じ名前のファイルがあります。上書きします(元は .bak に残ります):\n' + over.join('\n') + '\nよろしいですか?')) return;
+      var done = 0, fail = 0, left = todo.length;
+      todo.forEach(function (f) {
+        var rd = new FileReader();
+        rd.onload = function () {
+          try { layer.importFile(f.name, new Uint8Array(rd.result)); done++; log('[追加] ' + f.name + ' (' + f.size + 'B)'); }
+          catch (e) { fail++; log('[追加] 失敗 ' + f.name + ': ' + errText(e)); }
+          if (--left === 0) { toast(done + 'ファイルを追加しました' + (fail ? '(失敗 ' + fail + ')' : '') + '。再読み込みしてください'); renderDiag(); }
+        };
+        rd.onerror = function () { fail++; if (--left === 0) { toast(done + 'ファイルを追加しました(失敗 ' + fail + ')'); renderDiag(); } };
+        rd.readAsArrayBuffer(f);
+      });
     };
     $('dgBak').onclick = function () {
       if (!layer) return;
