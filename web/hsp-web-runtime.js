@@ -428,8 +428,8 @@
     var testing = Q.get('adtest') !== null ? Q.get('adtest') !== '0' : cfg.adsenseTest !== false;
     ad = root.AdEngine.create({
       clientId: id, testing: testing, log: log,
-      onShowStart: function () { if (mml) mml.pauseForAd(); },     // 広告中はMMLのBGMを一時停止
-      onShowEnd: function () { if (mml) mml.resumeAfterAd(); }     // 終わったら続きから
+      onShowStart: function () { if (mml) mml.pauseForAd(); audioSuspendForAd(); },     // 広告中はMMLのBGMを一時停止
+      onShowEnd: function () { audioResumeAfterAd(); if (mml) mml.resumeAfterAd(); }     // 終わったら続きから
     });
     root.__hspAd = ad;
     log('[広告] ' + (id ? 'ID設定あり' : 'IDなし(広告は出ません)') + ' テスト=' + (testing ? 'ON' : 'OFF'));
@@ -595,6 +595,29 @@
   root.addEventListener('resize', fit);
   root.addEventListener('orientationchange', function () { setTimeout(fit, 200); });
 
+  /* ---- 広告中の音止め(保険): ページ内の AudioContext を全部追跡し、広告中は suspend → 終了後に resume ----
+     公式エンジン(SDL)の音も、MMLの音も、同じ仕組みで止められる。エンジンより先に差し込む。 */
+  var audioCtxs = [], adSuspended = [];
+  (function () {
+    ['AudioContext', 'webkitAudioContext'].forEach(function (k) {
+      var Orig = root[k]; if (!Orig || Orig.__hspTracked) return;
+      var T = function () { var c = new (Function.prototype.bind.apply(Orig, [null].concat([].slice.call(arguments))))(); audioCtxs.push(c); return c; };
+      T.prototype = Orig.prototype; T.__hspTracked = true;
+      try { root[k] = T; } catch (e) {}
+    });
+  })();
+  function audioSuspendForAd() {
+    adSuspended = [];
+    audioCtxs.forEach(function (c) { try { if (c.state === 'running') { c.suspend(); adSuspended.push(c); } } catch (e) {} });
+    log('[音] 広告のため AudioContext ' + adSuspended.length + '/' + audioCtxs.length + ' 個を一時停止');
+  }
+  function audioResumeAfterAd() {
+    var l = adSuspended; adSuspended = [];
+    l.forEach(function (c) { try { c.resume(); } catch (e) {} });
+    log('[音] 広告終了 → AudioContext ' + l.length + ' 個を再開');
+  }
+
+  root.__hspAudioAd = { suspend: audioSuspendForAd, resume: audioResumeAfterAd, list: function () { return audioCtxs; } };
   if (Q.get('diag') === '1') buildDiag();
   log('[起動] build=' + V + ' ' + location.href);
   startPersist();

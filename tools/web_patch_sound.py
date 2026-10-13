@@ -51,6 +51,7 @@ static unsigned int ad_ch_mask = 0;
 
 void HspMmAdPause( void )
 {
+	fprintf( stderr, "[snd] adpause music=%d playing=%d paused=%d\\n", m_music ? 1 : 0, m_music ? Mix_PlayingMusic() : 0, m_music ? Mix_PausedMusic() : 0 );
 	ad_music_paused = false;
 	if ( m_music && Mix_PlayingMusic() && !Mix_PausedMusic() ) {
 		Mix_PauseMusic();
@@ -67,6 +68,7 @@ void HspMmAdPause( void )
 
 void HspMmAdResume( void )
 {
+	fprintf( stderr, "[snd] adresume music_paused=%d ch_mask=%u\\n", ad_music_paused ? 1 : 0, ad_ch_mask );
 	if ( ad_music_paused ) {
 		Mix_ResumeMusic();
 		ad_music_paused = false;
