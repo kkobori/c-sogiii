@@ -34,3 +34,12 @@ tools/mml_render.js は同じ合成をPC/CIで書き出すための補助ツー�
 
 `tools/hsp_native_pusher.html` を端末で開く。GitHubのトークン・owner・repo、アプリ設定(パッケージ名/アプリ名/version/向き)、AdMob設定、hspファイル、素材ZIPを指定して「反映してビルド」。
 差分だけをコミットし、ビルド完了を待って apk/aab をダウンロードする。設定は `config/app.json` / `config/admob.json` としてコミットされ、Gradle(build.gradle)とCIが読む。
+
+## セーブデータのバックアップ (指3本長押し)
+ゲーム画面を指3本で約1.5秒押し続けると、バックアップ画面が開く(`SaveTools.java`)。
+- 全部まとめて書き出し / 読み込み (JSON。Web版 `?diag=1` の一括バックアップと同じ形式)
+- 個別ファイルごとの 書き出し / 読み込み、ファイルを選んで追加(ファイル名のまま)
+- 対象はアプリ内の保存フォルダ(`getFilesDir()` 直下。リリース版の bsave/bload の保存先)。`crash_java.txt` などの診断ファイルは出ない
+- 上書きの前に確認が出て、元の内容は `<名前>.bak` に残る。読み込み後はアプリを開き直す
+- ファイルの受け渡しは Android 標準のファイル選択/保存画面だけを使うので、**ストレージ権限は不要** (AndroidManifest.xml の変更なし)
+- `debugonoff=1` のデバッグビルドは保存先が `/storage/emulated/0/sogiii/` になるため対象外

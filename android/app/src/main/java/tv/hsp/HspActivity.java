@@ -130,6 +130,20 @@ public class HspActivity extends NativeActivity {
     super.onBackPressed();
   }
 
+  // セーブデータのバックアップ画面: 指3本で約1.5秒押し続けると開く(タッチはそのままゲームにも渡す)
+  @Override
+  public boolean dispatchTouchEvent( android.view.MotionEvent ev ) {
+    try { SaveTools.onTouch( this, ev ); } catch ( Throwable t ) { android.util.Log.w( "HSPSAVE", "onTouch: " + t ); }
+    return super.dispatchTouchEvent( ev );
+  }
+
+  @SuppressWarnings("deprecation")
+  @Override
+  protected void onActivityResult( int requestCode, int resultCode, Intent data ) {
+    if ( SaveTools.onResult( this, requestCode, resultCode, data ) ) return;
+    super.onActivityResult( requestCode, resultCode, data );
+  }
+
   @Override
   protected void onPause() { AdBridge.noteFromNative( "activity onPause" ); super.onPause(); }
 
