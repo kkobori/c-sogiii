@@ -43,3 +43,11 @@ tools/mml_render.js は同じ合成をPC/CIで書き出すための補助ツー�
 - 上書きの前に確認が出て、元の内容は `<名前>.bak` に残る。読み込み後はアプリを開き直す
 - ファイルの受け渡しは Android 標準のファイル選択/保存画面だけを使うので、**ストレージ権限は不要** (AndroidManifest.xml の変更なし)
 - `debugonoff=1` のデバッグビルドは保存先が `/storage/emulated/0/sogiii/` になるため対象外
+- AndroidManifest.xml からストレージ権限(WRITE_EXTERNAL_STORAGE)は削除済み。リリース版の保存先はアプリ内なので不要。デバッグビルド(`debugonoff=1`)の外部保存は使えなくなる(CIは常に製品モードに置換するので影響なし)
+
+## 共有ストレージ版 (apk専用。sogmake のように /storage/emulated/0/ を直接読み書きするアプリ)
+pusher の「共有ストレージ版」にチェックを入れてビルドする(`config/app.json` の `allFilesAccess: true`)。
+- **apk にだけ** `MANAGE_EXTERNAL_STORAGE` を付ける(CIが apk のビルド中だけ AndroidManifest.xml に足し、aab のときは外す。`tools/manifest_perm.py`)。**このaabはPlayストアに出せない**
+- `debugonoff` を 0 に書き換えない(スクリプトの `debugonoff=1` のまま、保存先は `/storage/emulated/0/...`)
+- 初回起動時に「すべてのファイルへのアクセス」の許可画面へ案内するダイアログが出る(`StoragePerm.java`。Android 11以上)。許可したらアプリを開き直す
+- チェックなし(既定)なら、従来どおり権限なし・製品モード(保存先はアプリ内)

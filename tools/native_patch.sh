@@ -4,7 +4,10 @@ set -euo pipefail
 cd "$1"
 cp main.hsp main.hsp.orig
 # 1) 製品モード (Androidの保存先を外部ストレージ→アプリ内へ)
-sed -i -E 's/^([[:space:]]*debugonoff[[:space:]]*=[[:space:]]*)1([[:space:]]*(;.*)?)$/\10\2/' main.hsp
+# (共有ストレージ版 KEEP_DEBUGONOFF=1 のときは書き換えない: /storage/emulated/0/ へ直接読み書きする版)
+if [ "${KEEP_DEBUGONOFF:-0}" != "1" ]; then
+  sed -i -E 's/^([[:space:]]*debugonoff[[:space:]]*=[[:space:]]*)1([[:space:]]*(;.*)?)$/\10\2/' main.hsp
+fi
 # 2) mmload -> mmloadsafe (読み込めない音源でエラー終了しない)
 # (::mmlt:: のMMLは実行時に hsp-synth.js で合成するため、そのまま mmload のまま残す)
 sed -i -E '/::mmlt::/!s/^([[:space:]]*)mmload([[:space:]])/\1mmloadsafe\2/' main.hsp

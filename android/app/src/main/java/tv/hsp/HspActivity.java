@@ -152,7 +152,7 @@ public class HspActivity extends NativeActivity {
   protected void onPause() { AdBridge.noteFromNative( "activity onPause" ); super.onPause(); }
 
   @Override
-  protected void onResume() { super.onResume(); AdBridge.noteFromNative( "activity onResume" ); }
+  protected void onResume() { super.onResume(); AdBridge.noteFromNative( "activity onResume" ); try { StoragePerm.onResume( this ); } catch ( Throwable t ) { android.util.Log.w( "HSPSTORAGE", "onResume: " + t ); } }
 
   // Nativeへの通知
   public native void nativepoke(int val, int val2);
@@ -498,6 +498,7 @@ public class HspActivity extends NativeActivity {
 		CrashReporter.showIfAny(this);
 		MmlSynth.prewarm(this);
 		try { AdBridge.init(this); } catch (Throwable t) { android.util.Log.w("HSPAD", "AdBridge.init: " + t); }
+		try { StoragePerm.check(this); } catch (Throwable t) { android.util.Log.w("HSPSTORAGE", "check: " + t); }
 
 		View decor = getWindow().getDecorView();
 		// hide navigation bar, hide status bar. don't show navigation when tapped.

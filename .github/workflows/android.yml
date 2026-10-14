@@ -17,6 +17,11 @@ jobs:
           echo "sdkmanager: $SDKM"
           yes | "$SDKM" --licenses > /dev/null || true
           "$SDKM" "ndk;26.3.11579264" "platforms;android-35" "build-tools;34.0.0" "build-tools;35.0.0"
+      - name: Build options (config/app.json)
+        run: |
+          ALL=$(python3 -c "import json;print('1' if json.load(open('config/app.json')).get('allFilesAccess') else '0')" 2>/dev/null || echo 0)
+          echo "ALLFILES=$ALL" >> "$GITHUB_ENV"
+          echo "共有ストレージ版(allFilesAccess): $ALL"
       - name: Build official HSP tools (hspcmp / hsp3cnv)
         run: ./tools/build_hsp_tools.sh ./hsptools
       - name: HSP script -> C++ (same as HSP3Dish Helper)
@@ -25,7 +30,7 @@ jobs:
           MAIN=$(python3 -c "import json,os;print(json.load(open('../config/app.json')).get('mainScript','main.hsp'))" 2>/dev/null || echo main.hsp)
           echo "メインスクリプト: $MAIN"
           if [ "$MAIN" != "main.hsp" ]; then cp "$MAIN" main.hsp; fi
-          bash ../tools/native_patch.sh .
+          KEEP_DEBUGONOFF=$ALLFILES bash ../tools/native_patch.sh .
           ../hsptools/hspcmp -i -u --compath=../hsptools/common/ main.hsp
           ../hsptools/hsp3cnv -d main
           echo "BUILD main.hsp blob=$(git hash-object main.hsp.orig) lines=$(wc -l < main.hsp.orig) commit=$GITHUB_SHA"
@@ -70,7 +75,15 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease bundleRelease --no-daemon
+          if [ "$ALLFILES" = "1" ]; then
+            # 共有ストレージ版: apk にだけ MANAGE_EXTERNAL_STORAGE を付ける(aab には付けない)
+            python3 ../tools/manifest_perm.py add app/src/main/AndroidManifest.xml
+            ./gradlew assembleRelease --no-daemon
+            python3 ../tools/manifest_perm.py remove app/src/main/AndroidManifest.xml
+            ./gradlew bundleRelease --no-daemon
+          else
+            ./gradlew assembleRelease bundleRelease --no-daemon
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: hsp-android

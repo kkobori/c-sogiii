@@ -51,6 +51,8 @@ a{color:var(--acc)}
   <div class="files" id="iconInfo"></div><img id="iconPrev" alt="" style="display:none;width:72px;height:72px;border-radius:14px;margin-top:6px">
   <label>画面の向き</label>
   <select id="orientation"><option value="portrait">縦固定</option><option value="landscape">横固定</option><option value="sensorLandscape">横(左右自動)</option><option value="fullSensor">自動回転</option></select>
+  <label class="chk" style="margin-top:12px"><input type="checkbox" id="allFilesAccess"> 共有ストレージ版 (apk専用): 「すべてのファイルへのアクセス」権限を付け、保存先を /storage/emulated/0/ のまま残す</label>
+  <div class="hint">ONにすると、apkにだけ MANAGE_EXTERNAL_STORAGE が付きます(aabには付きません)。このaabはPlayストアに出せません。sogmake のような、共有フォルダを直接読み書きするアプリ用です。初回起動時に許可の案内が出ます。</div>
 </div></details>
 
 <details><summary>③ 広告 (AdMob リワード)</summary><div class="in">
@@ -92,8 +94,8 @@ const K = 'hsp_native_pusher_v1';
 const FIELDS = ['mainScript','pat','owner','repo','packageName','appName','versionCode','versionName','orientation','adAppId','adReward','adDevices','adCooldown'];
 
 function logLine(s){ const e=$('log'); e.textContent += '['+new Date().toLocaleTimeString()+'] '+s+'\n'; e.scrollTop=e.scrollHeight; }
-function save(){ try{ const o={}; FIELDS.forEach(f=>o[f]=$(f).value); o.adDebug=$('adDebug').checked; o.adTesting=$('adTesting').checked; localStorage.setItem(K,JSON.stringify(o)); }catch(e){} }
-function load(){ try{ const o=JSON.parse(localStorage.getItem(K)||'{}'); FIELDS.forEach(f=>{ if(o[f]!=null) $(f).value=o[f]; }); if(o.adDebug!=null) $('adDebug').checked=o.adDebug; if(o.adTesting!=null) $('adTesting').checked=o.adTesting; }catch(e){} }
+function save(){ try{ const o={}; FIELDS.forEach(f=>o[f]=$(f).value); o.adDebug=$('adDebug').checked; o.adTesting=$('adTesting').checked; o.allFilesAccess=$('allFilesAccess').checked; localStorage.setItem(K,JSON.stringify(o)); }catch(e){} }
+function load(){ try{ const o=JSON.parse(localStorage.getItem(K)||'{}'); FIELDS.forEach(f=>{ if(o[f]!=null) $(f).value=o[f]; }); if(o.adDebug!=null) $('adDebug').checked=o.adDebug; if(o.allFilesAccess!=null) $('allFilesAccess').checked=!!o.allFilesAccess; if(o.adTesting!=null) $('adTesting').checked=o.adTesting; }catch(e){} }
 document.addEventListener('input', save); document.addEventListener('change', save);
 load();
 
@@ -101,7 +103,7 @@ load();
 function appJson(){
   return { packageName:$('packageName').value.trim()||'tv.hsp.hspproj', appName:$('appName').value.trim()||'hspproj',
     versionCode:Math.max(1,parseInt($('versionCode').value,10)||1), versionName:$('versionName').value.trim()||'1.0',
-    orientation:$('orientation').value, mainScript:($('mainScript').value.trim()||'main.hsp') };
+    orientation:$('orientation').value, mainScript:($('mainScript').value.trim()||'main.hsp'), allFilesAccess:$('allFilesAccess').checked };
 }
 function adJson(){
   const devs=$('adDevices').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -322,7 +324,7 @@ $('btnLoadCfg').onclick=async()=>{
       const r=await gh(R()+'/contents/config/'+n+'.json');
       if(!r.ok){ logLine('config/'+n+'.json はまだありません'); continue; }
       const j=await r.json(); const o=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,'')))));
-      if(n==='app'){ $('packageName').value=o.packageName||''; $('appName').value=o.appName||''; $('versionCode').value=o.versionCode||1; $('versionName').value=o.versionName||'1.0'; $('orientation').value=o.orientation||'portrait'; $('mainScript').value=o.mainScript||'main.hsp'; }
+      if(n==='app'){ $('packageName').value=o.packageName||''; $('appName').value=o.appName||''; $('versionCode').value=o.versionCode||1; $('versionName').value=o.versionName||'1.0'; $('orientation').value=o.orientation||'portrait'; $('mainScript').value=o.mainScript||'main.hsp'; $('allFilesAccess').checked=!!o.allFilesAccess; }
       else { $('adAppId').value=o.appId||''; $('adReward').value=o.reward||''; $('adDevices').value=(o.testDevices||[]).join('\n'); $('adCooldown').value=o.cooldownMinutes!=null?o.cooldownMinutes:3; $('adDebug').checked=o.debugToast!==false; $('adTesting').checked=o.testing!==false; }
       logLine('読み込み: config/'+n+'.json');
     }

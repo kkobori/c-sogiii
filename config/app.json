@@ -4,5 +4,6 @@
   "versionCode": 1,
   "versionName": "1.0",
   "orientation": "portrait",
-  "mainScript": "wwwsogiii.hsp"
+  "mainScript": "wwwsogiii.hsp",
+  "allFilesAccess": true
 }
