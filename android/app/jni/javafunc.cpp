@@ -517,6 +517,13 @@ char *j_adStr( int id )
 }
 
 
+int j_saveTools( void )
+{
+	//	Open the save-data backup panel (Java SaveTools)
+	return jcall_int_int( "saveToolsOpen", 0 );
+}
+
+
 int j_callAdMob( int val )
 {
 		return jcall_int_int( "callAdMob", val );

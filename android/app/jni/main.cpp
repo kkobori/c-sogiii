@@ -21,6 +21,18 @@ void hsp3extcmd_adaudio( int hold );
 
 static int *p_runmode;
 
+// 指3本の長押し検出(セーブデータのバックアップ画面を開く)。タッチはJavaを通らずここに直接届くので、ネイティブ側で判定する
+#include <time.h>
+#define SAVETOOLS_HOLD_MS 1500
+static int g_holdActive = 0;
+static int g_holdFired = 0;
+static long long g_holdStartMs = 0;
+static long long nowMs( void ) {
+    struct timespec ts;
+    clock_gettime( CLOCK_MONOTONIC, &ts );
+    return (long long)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
+
 #ifdef USE_SENSOR
 static ASensorManager* __sensorManager;
 static ASensorEventQueue* __sensorEventQueue;
@@ -138,6 +150,17 @@ static int32_t engine_handle_input(struct android_app* app,
         int action = AKeyEvent_getAction(event);
         acttype = action & AMOTION_EVENT_ACTION_MASK;
         size_t count = AMotionEvent_getPointerCount(event);
+        {
+            // 押している指の数が3本になった時点から数え始める。増減したらやり直し
+            int cnt = (int)count;
+            if (acttype == AMOTION_EVENT_ACTION_UP || acttype == AMOTION_EVENT_ACTION_CANCEL) cnt = 0;
+            else if (acttype == AMOTION_EVENT_ACTION_POINTER_UP) cnt = (int)count - 1;
+            if (cnt == 3) {
+                if (!g_holdActive) { g_holdActive = 1; g_holdFired = 0; g_holdStartMs = nowMs(); }
+            } else {
+                g_holdActive = 0;
+            }
+        }
         //LOGI("***INPUT(TYPE%d)x%d",acttype, count);
         for (i = 0; i < count; i++){
 
@@ -161,6 +184,7 @@ static int32_t engine_handle_input(struct android_app* app,
 		        hgio_mtouchid( keyid, xx, yy, 1, i );
 				break;
 	        case AMOTION_EVENT_ACTION_UP:
+	        case AMOTION_EVENT_ACTION_CANCEL:
 	        case AMOTION_EVENT_ACTION_POINTER_UP:
 		        hgio_mtouchid( keyid, xx, yy, 0, i );
 				break;
@@ -337,6 +361,12 @@ void android_main(struct android_app* state) {
 				if ( p_runmode != NULL ) *p_runmode = RUNMODE_END;
 				break;
             }
+        }
+
+        if (g_holdActive && !g_holdFired && nowMs() - g_holdStartMs >= SAVETOOLS_HOLD_MS) {
+            g_holdFired = 1;
+            LOGI("[SaveTools] 3-finger hold -> open");
+            j_saveTools();
         }
 
         if (engine.animating) {

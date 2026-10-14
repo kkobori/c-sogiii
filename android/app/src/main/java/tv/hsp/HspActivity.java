@@ -130,11 +130,15 @@ public class HspActivity extends NativeActivity {
     super.onBackPressed();
   }
 
-  // セーブデータのバックアップ画面: 指3本で約1.5秒押し続けると開く(タッチはそのままゲームにも渡す)
-  @Override
-  public boolean dispatchTouchEvent( android.view.MotionEvent ev ) {
-    try { SaveTools.onTouch( this, ev ); } catch ( Throwable t ) { android.util.Log.w( "HSPSAVE", "onTouch: " + t ); }
-    return super.dispatchTouchEvent( ev );
+  // セーブデータのバックアップ画面。ネイティブ側(main.cpp)が指3本の長押しを検出して呼ぶ
+  public int saveToolsOpen( int v ) {
+    final HspActivity act = this;
+    runOnUiThread( new Runnable() {
+      public void run() {
+        try { SaveTools.showPanel( act ); } catch ( Throwable t ) { android.util.Log.w( "HSPSAVE", "showPanel: " + t ); }
+      }
+    } );
+    return 0;
   }
 
   @SuppressWarnings("deprecation")

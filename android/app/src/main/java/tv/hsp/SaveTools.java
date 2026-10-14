@@ -14,7 +14,6 @@ import android.provider.OpenableColumns;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -44,7 +43,7 @@ import java.util.Set;
 import java.util.TimeZone;
 
 /**
- * セーブデータのバックアップ(書き出し/読み込み)。画面を指3本で約1.5秒押し続けると開く。
+ * セーブデータのバックアップ(書き出し/読み込み)。画面を指3本で約1.5秒押し続けると開く(検出は main.cpp、開くのは HspActivity.saveToolsOpen)。
  *
  * 対象: アプリ内の保存フォルダ(getFilesDir() 直下のファイル)。bsave/bload の相対パスの保存先。
  * ファイルの受け渡しは Storage Access Framework(Android標準のファイル選択/保存画面)だけを使う。
@@ -56,33 +55,13 @@ import java.util.TimeZone;
 public class SaveTools {
     private static final String TAG = "HSPSAVE";
     private static final int RC_EXPORT_ONE = 0x5A11, RC_IMPORT_ONE = 0x5A12, RC_EXPORT_ALL = 0x5A13, RC_IMPORT_ALL = 0x5A14, RC_ADD = 0x5A15;
-    private static final int HOLD_MS = 1500;
     private static final long MAX_BYTES = 32L * 1024 * 1024;
     private static final String NAME_RE = "[A-Za-z0-9_.\\-]+";
 
     private static final Handler ui = new Handler(Looper.getMainLooper());
     private static final Set<String> HIDDEN = new HashSet<String>(Arrays.asList("crash_java.txt", "ad_debug.txt"));
-    private static Runnable holdTask = null;
     private static AlertDialog panel = null;
     private static String pendingName = null;
-
-    /* ------------------------------------------------------------ 起動の入口(指3本長押し) */
-    public static void onTouch(final Activity act, MotionEvent ev) {
-        int a = ev.getActionMasked();
-        if (a == MotionEvent.ACTION_POINTER_DOWN && ev.getPointerCount() == 3) {
-            cancelHold();
-            holdTask = new Runnable() {
-                public void run() { holdTask = null; showPanel(act); }
-            };
-            ui.postDelayed(holdTask, HOLD_MS);
-        } else if (a == MotionEvent.ACTION_POINTER_UP || a == MotionEvent.ACTION_UP || a == MotionEvent.ACTION_CANCEL
-                || (a == MotionEvent.ACTION_MOVE && ev.getPointerCount() != 3)) {
-            cancelHold();
-        }
-    }
-    private static void cancelHold() {
-        if (holdTask != null) { ui.removeCallbacks(holdTask); holdTask = null; }
-    }
 
     /* ------------------------------------------------------------ ファイル操作 */
     private static boolean okName(String n) {
