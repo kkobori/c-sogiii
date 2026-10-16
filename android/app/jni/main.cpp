@@ -15,6 +15,7 @@
 #include "hsp3embed/hsp3embed.h"
 #include "hsp3dish/hgio.h"
 #include "hsp3dish/sysreq.h"
+#include "hsp3dish/padinput.h"
 void hsp3extcmd_adaudio( int hold );
 
 //#define USE_SENSOR
@@ -140,9 +141,29 @@ static int32_t engine_handle_input(struct android_app* app,
             }
             return 1;
         }
+        // ゲームパッドのボタン: config/gamepad.json で割り当てたものだけを getkey 用に受け取る
+        {
+            int act = AKeyEvent_getAction(event);
+            if (act == AKEY_EVENT_ACTION_DOWN || act == AKEY_EVENT_ACTION_UP) {
+                if (PadKeyEvent(AKeyEvent_getKeyCode(event), act == AKEY_EVENT_ACTION_DOWN ? 1 : 0)) return 1;
+            }
+        }
         return 0;
     }
     if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION) {
+        // ジョイスティック系(十字キーHAT・トリガー)は、タッチではないので別に処理する
+        if ((AInputEvent_getSource(event) & AINPUT_SOURCE_JOYSTICK) == AINPUT_SOURCE_JOYSTICK) {
+            float hx = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_HAT_X, 0);
+            float hy = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_HAT_Y, 0);
+            float lt = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_LTRIGGER, 0);
+            float rt = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_RTRIGGER, 0);
+            float br = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_BRAKE, 0);
+            float ga = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_GAS, 0);
+            if (br > lt) lt = br;
+            if (ga > rt) rt = ga;
+            PadAxisEvent(hx, hy, lt, rt);
+            return 1;
+        }
 
         int i,keyid,pid;
 		int xx,yy;
@@ -209,6 +230,7 @@ static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
             if ( j_adInt( 1000 ) != 2 ) hsp3extcmd_adaudio( 0 );
         }
     }
+    if ( cmd == APP_CMD_LOST_FOCUS || cmd == APP_CMD_PAUSE ) PadReset();	// 押しっぱなし固着の防止
     switch (cmd) {
     case APP_CMD_SAVE_STATE:
         engine->app->savedState = malloc(sizeof(struct saved_state));

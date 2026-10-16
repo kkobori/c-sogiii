@@ -32,6 +32,9 @@ char *hsp3dish_getlog(void);		// for gameplay3d log
 #include "supio.h"
 #include "sysreq.h"
 #ifdef HSPNDK
+#include "padinput.h"
+#endif
+#ifdef HSPNDK
 #include "../javafunc.h"
 #endif
 #include "webtask.h"
@@ -796,6 +799,7 @@ static int cmdfunc_extcmd( int cmd )
 		if ( p1 == 1 ) {
 			p2 = ( hgio_stick(0)&256 )>>8;
 		}
+		if ( PadGetKey( p1 ) ) p2 = 1;	// ゲームパッド(config/gamepad.json の割り当て)
 #endif
 #if defined(HSPLINUX) || defined(HSPEMSCRIPTEN)
 		if ( hgio_getkey( p1 ) ) p2 = 1;

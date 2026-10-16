@@ -36,6 +36,8 @@ jobs:
           echo "BUILD main.hsp blob=$(git hash-object main.hsp.orig) lines=$(wc -l < main.hsp.orig) commit=$GITHUB_SHA"
           python3 ../tools/add_trace.py main.cpp
           cp main.cpp ../android/app/jni/hsp3embed/hspsource.cpp
+      - name: Gamepad config (config/gamepad.json)
+        run: python3 tools/gen_padmap.py config/gamepad.json android/app/jni/padmap_gen.h
       - name: AdMob config
         run: |
           if [ -f config/admob.json ]; then

@@ -40,6 +40,7 @@ hsp3dish/hspwnd_obj.cpp \
 hsp3dish/hspwnd_edit.cpp \
 hsp3dish/random.cpp \
 hsp3dish/sysreq.cpp \
+hsp3dish/padinput.cpp \
 hsp3dish/texmes.cpp \
 hsp3dish/emscripten/fontsystem.cpp \
 hsp3dish/emscripten/hgiox.cpp \
