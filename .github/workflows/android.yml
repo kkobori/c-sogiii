@@ -22,6 +22,9 @@ jobs:
           ALL=$(python3 -c "import json;print('1' if json.load(open('config/app.json')).get('allFilesAccess') else '0')" 2>/dev/null || echo 0)
           echo "ALLFILES=$ALL" >> "$GITHUB_ENV"
           echo "共有ストレージ版(allFilesAccess): $ALL"
+          AAB=$(python3 -c "import json;print('0' if json.load(open('config/app.json')).get('buildAab') is False else '1')" 2>/dev/null || echo 1)
+          echo "BUILDAAB=$AAB" >> "$GITHUB_ENV"
+          echo "AABも作る(buildAab): $AAB"
       - name: Build official HSP tools (hspcmp / hsp3cnv)
         run: ./tools/build_hsp_tools.sh ./hsptools
       - name: HSP script -> C++ (same as HSP3Dish Helper)
@@ -73,7 +76,7 @@ jobs:
             keytool -genkeypair -keystore android/app/release.keystore -alias hspapp -keyalg RSA -keysize 2048 -validity 10000 -storepass testpass123 -keypass testpass123 -dname "CN=test"
             echo "RELEASE_PASSWORD=testpass123" >> "$GITHUB_ENV"
           fi
-      - name: Gradle (apk + aab)
+      - name: Gradle (apk、設定でONならaabも)
         working-directory: android
         run: |
           chmod +x gradlew
@@ -82,9 +85,12 @@ jobs:
             python3 ../tools/manifest_perm.py add app/src/main/AndroidManifest.xml
             ./gradlew assembleRelease --no-daemon
             python3 ../tools/manifest_perm.py remove app/src/main/AndroidManifest.xml
-            ./gradlew bundleRelease --no-daemon
-          else
+            if [ "$BUILDAAB" = "1" ]; then ./gradlew bundleRelease --no-daemon; else echo "aab は作りません(buildAab=false)"; fi
+          elif [ "$BUILDAAB" = "1" ]; then
             ./gradlew assembleRelease bundleRelease --no-daemon
+          else
+            echo "aab は作りません(buildAab=false)"
+            ./gradlew assembleRelease --no-daemon
           fi
       - uses: actions/upload-artifact@v4
         with:

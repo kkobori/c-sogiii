@@ -33,3 +33,10 @@
 	if r=2 : r=-1
 	return r
 #global
+
+; devcontrol "refresh" の代わり。表示面の作り直しはミニインタプリタ(試し実行)用の命令で、
+; 実機Android・Webでは必要ないため、何もしない(コメントを外して残しても安全)
+#module "devrefresh"
+#deffunc devrefreshnoop
+	return
+#global
