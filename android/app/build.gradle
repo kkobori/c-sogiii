@@ -18,6 +18,8 @@ def cfgVerCode = appCfg.versionCode ? appCfg.versionCode.toString().toInteger() 
 def cfgVerName = appCfg.versionName ? appCfg.versionName.toString() : "1.0"
 // 指3本長押しのデバッグ用バックアップ画面: apk=1(有効) / aab=0(無効)。CIが ./gradlew ... -PgestureBackup=0|1 で渡す
 def gestureBackup = (project.findProperty("gestureBackup")?.toString() == "0") ? "0" : "1"
+// 起動直後の「前回の終了ログ」ダイアログ: 1=出す / 0=出さない。CIが ./gradlew ... -PcrashLog=0|1 で渡す(未指定は1)
+def crashLog = (project.findProperty("crashLog")?.toString() == "0") ? "0" : "1"
 def cfgOrient = (appCfg.orientation in ["portrait", "landscape", "sensorLandscape", "sensorPortrait", "fullSensor", "unspecified"]) ? appCfg.orientation.toString() : "portrait"
 
 android {
@@ -31,7 +33,7 @@ android {
         versionCode cfgVerCode
         versionName cfgVerName
         multiDexEnabled true
-        manifestPlaceholders = [admobAppId: admobAppId, appLabel: cfgLabel, screenOrientation: cfgOrient, gestureBackup: gestureBackup]
+        manifestPlaceholders = [admobAppId: admobAppId, appLabel: cfgLabel, screenOrientation: cfgOrient, gestureBackup: gestureBackup, crashLog: crashLog]
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {

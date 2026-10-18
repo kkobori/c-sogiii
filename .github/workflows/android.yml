@@ -25,6 +25,12 @@ jobs:
           AAB=$(python3 -c "import json;print('0' if json.load(open('config/app.json')).get('buildAab') is False else '1')" 2>/dev/null || echo 1)
           echo "BUILDAAB=$AAB" >> "$GITHUB_ENV"
           echo "AABも作る(buildAab): $AAB"
+          # 起動直後の「前回の終了ログ」: apk は既定でON(crashLogApk)、aab は既定でOFF(crashLogAab)
+          CLA=$(python3 -c "import json;print('0' if json.load(open('config/app.json')).get('crashLogApk') is False else '1')" 2>/dev/null || echo 1)
+          CLB=$(python3 -c "import json;print('1' if json.load(open('config/app.json')).get('crashLogAab') else '0')" 2>/dev/null || echo 0)
+          echo "CRASHLOG_APK=$CLA" >> "$GITHUB_ENV"
+          echo "CRASHLOG_AAB=$CLB" >> "$GITHUB_ENV"
+          echo "前回終了ログ apk=$CLA aab=$CLB"
       - name: Build official HSP tools (hspcmp / hsp3cnv)
         run: ./tools/build_hsp_tools.sh ./hsptools
       - name: HSP script -> C++ (same as HSP3Dish Helper)
@@ -82,18 +88,18 @@ jobs:
           chmod +x gradlew
           if [ "$ALLFILES" = "1" ]; then
             # 共有ストレージ版: apk にだけ MANAGE_EXTERNAL_STORAGE を付ける(aab には付けない)
-            # 指3本長押しのバックアップ画面(デバッグ用): apk は有効(-PgestureBackup=1)、aab は無効(=0)
+            # 指3本長押しのバックアップ画面(デバッグ用): apk は有効(-PgestureBackup=1)、aab は無効(=0)。起動直後の前回終了ログ(-PcrashLog)は pusher の設定(config/app.json の crashLogApk / crashLogAab)
             python3 ../tools/manifest_perm.py add app/src/main/AndroidManifest.xml
-            ./gradlew assembleRelease --no-daemon -PgestureBackup=1
+            ./gradlew assembleRelease --no-daemon -PgestureBackup=1 -PcrashLog=$CRASHLOG_APK
             python3 ../tools/manifest_perm.py remove app/src/main/AndroidManifest.xml
-            if [ "$BUILDAAB" = "1" ]; then ./gradlew bundleRelease --no-daemon -PgestureBackup=0; else echo "aab は作りません(buildAab=false)"; fi
+            if [ "$BUILDAAB" = "1" ]; then ./gradlew bundleRelease --no-daemon -PgestureBackup=0 -PcrashLog=$CRASHLOG_AAB; else echo "aab は作りません(buildAab=false)"; fi
           elif [ "$BUILDAAB" = "1" ]; then
             # apk と aab は別々のgradle実行にする(指3本長押しの有効/無効を、ビルドごとに切り替えるため)
-            ./gradlew assembleRelease --no-daemon -PgestureBackup=1
-            ./gradlew bundleRelease --no-daemon -PgestureBackup=0
+            ./gradlew assembleRelease --no-daemon -PgestureBackup=1 -PcrashLog=$CRASHLOG_APK
+            ./gradlew bundleRelease --no-daemon -PgestureBackup=0 -PcrashLog=$CRASHLOG_AAB
           else
             echo "aab は作りません(buildAab=false)"
-            ./gradlew assembleRelease --no-daemon -PgestureBackup=1
+            ./gradlew assembleRelease --no-daemon -PgestureBackup=1 -PcrashLog=$CRASHLOG_APK
           fi
       - uses: actions/upload-artifact@v4
         with:

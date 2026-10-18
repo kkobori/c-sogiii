@@ -7,6 +7,7 @@ hsp/main.hsp (UTF-8) → hspcmp → .ax → hsp3cnv → hspsource.cpp → ndkBui
 
 ## 落ちた原因の確認（課題1）
 アプリを一度落として、もう一度起動すると「前回の終了ログ」ダイアログが出ます。「コピー」で内容をクリップボードへ。
+- ビルドごとに出す/出さないを切替: pusher の「起動直後に前回の終了ログを出す: apk / aab」(config/app.json の crashLogApk[既定ON] / crashLogAab[既定OFF])。中身は gradle の `-PcrashLog=1|0`
 - Java例外 / 終了理由(Android 11+: CRASH_NATIVE, ANR, LOW_MEMORY 等) / logcat末尾(HSPERR, Fatal signal 等)
 - HSPのエラー(`#Error N in line L`)は従来のダイアログに加え logcat タグ HSPERR にも出力
 

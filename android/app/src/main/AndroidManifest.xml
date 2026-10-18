@@ -15,6 +15,8 @@
             android:value="${admobAppId}"/>
         <meta-data android:name="tv.hsp.gestureBackup"
             android:value="${gestureBackup}"/>
+        <meta-data android:name="tv.hsp.crashLog"
+            android:value="${crashLog}"/>
         <uses-library android:name="org.apache.http.legacy" android:required="false"/>
         <!-- バックアップ画面の取り込み後にアプリを作り直すための、別プロセスの中継画面 -->
         <activity android:name="tv.hsp.RestartActivity"

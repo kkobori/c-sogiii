@@ -5,6 +5,8 @@
   "versionName": "1.0",
   "orientation": "portrait",
   "mainScript": "wwwsogiii.hsp",
-  "allFilesAccess": false,
-  "buildAab": false
+  "allFilesAccess": true,
+  "buildAab": false,
+  "crashLogApk": false,
+  "crashLogAab": false
 }

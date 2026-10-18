@@ -144,6 +144,16 @@ public class HspActivity extends NativeActivity {
     } catch ( Throwable t ) { return true; }
   }
 
+  // 起動直後に「前回の終了ログ」を出すか。gradle の -PcrashLog=0 のビルドでは出さない(未指定は出す)
+  private boolean crashLogEnabled() {
+    try {
+      android.content.pm.ApplicationInfo ai = getPackageManager().getApplicationInfo( getPackageName(), android.content.pm.PackageManager.GET_META_DATA );
+      Object o = ( ai.metaData != null ) ? ai.metaData.get( "tv.hsp.crashLog" ) : null;
+      if ( o == null ) return true;
+      return !"0".equals( String.valueOf( o ).trim() );
+    } catch ( Throwable t ) { return true; }
+  }
+
   // セーブデータのバックアップ画面(デバッグ用)。ネイティブ側(main.cpp)が指3本の長押しを検出して呼ぶ
   public int saveToolsOpen( int v ) {
     if ( !gestureBackupEnabled() || BackupWindow.isActive() ) return 0;
@@ -511,7 +521,7 @@ public class HspActivity extends NativeActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		CrashReporter.install(this);
 		super.onCreate(savedInstanceState);
-		CrashReporter.showIfAny(this);
+		if ( crashLogEnabled() ) CrashReporter.showIfAny(this);
 		MmlSynth.prewarm(this);
 		try { AdBridge.init(this); } catch (Throwable t) { android.util.Log.w("HSPAD", "AdBridge.init: " + t); }
 		try { StoragePerm.check(this); } catch (Throwable t) { android.util.Log.w("HSPSTORAGE", "check: " + t); }
