@@ -517,6 +517,29 @@ char *j_adStr( int id )
 }
 
 
+int j_backupOpen( const char *cmd, int slotmax, int size )
+{
+	//	Open the user-facing backup window (Java BackupWindow). 0=opened / -1=invalid command
+	JNIEnv* env;
+	m_vm->AttachCurrentThread(&env, NULL);
+	jclass clazz = env->GetObjectClass(m_engine->app->activity->clazz);
+	jmethodID methodj = env->GetMethodID(clazz, "backupOpen", "(Ljava/lang/String;II)I");
+	jstring js = env->NewStringUTF(cmd);
+	jint value = env->CallIntMethod(m_engine->app->activity->clazz, methodj, js, (jint)slotmax, (jint)size);
+	env->DeleteLocalRef(js);
+	env->DeleteLocalRef(clazz);
+	m_vm->DetachCurrentThread();
+	return (int)value;
+}
+
+
+int j_backupPoll( void )
+{
+	//	2 while the backup window is open, 0 once it is closed
+	return jcall_int_int( "backupPoll", 0 );
+}
+
+
 int j_saveTools( void )
 {
 	//	Open the save-data backup panel (Java SaveTools)

@@ -16,6 +16,8 @@ def cfgPackage = appCfg.packageName ? appCfg.packageName.toString() : "tv.hsp.hs
 def cfgLabel = appCfg.appName ? appCfg.appName.toString() : "hspproj"
 def cfgVerCode = appCfg.versionCode ? appCfg.versionCode.toString().toInteger() : 1
 def cfgVerName = appCfg.versionName ? appCfg.versionName.toString() : "1.0"
+// 指3本長押しのデバッグ用バックアップ画面: apk=1(有効) / aab=0(無効)。CIが ./gradlew ... -PgestureBackup=0|1 で渡す
+def gestureBackup = (project.findProperty("gestureBackup")?.toString() == "0") ? "0" : "1"
 def cfgOrient = (appCfg.orientation in ["portrait", "landscape", "sensorLandscape", "sensorPortrait", "fullSensor", "unspecified"]) ? appCfg.orientation.toString() : "portrait"
 
 android {
@@ -29,7 +31,7 @@ android {
         versionCode cfgVerCode
         versionName cfgVerName
         multiDexEnabled true
-        manifestPlaceholders = [admobAppId: admobAppId, appLabel: cfgLabel, screenOrientation: cfgOrient]
+        manifestPlaceholders = [admobAppId: admobAppId, appLabel: cfgLabel, screenOrientation: cfgOrient, gestureBackup: gestureBackup]
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {

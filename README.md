@@ -61,3 +61,29 @@ pusher の「共有ストレージ版」にチェックを入れてビルドす�
 ## ビルドの設定 (段階3)
 - `config/app.json` の `buildAab` が `false` のとき、apk だけを作ります(未指定・true は apk と aab)。Pusher の「AAB も作る」チェックで切り替えます。
 - `devcontrol "refresh"`(コメント行を除く)は、ビルド時に何もしない命令 `devrefreshnoop` へ置き換わります。試し実行(ミニインタプリタ)では従来どおり動きます。
+
+## セーブデータのバックアップ画面(ユーザー向け) — devcontrol "backup::…"
+
+ゲームから呼ぶと、ゲームを一時停止してバックアップ画面を出す。
+```
+slotmax=20
+devcontrol "backup::sog3sd*.dat::", slotmax          ; サイズは検査しない
+devcontrol "backup::sog3sd*.dat::", slotmax, 196608  ; 196608B のファイルだけ取り込める
+```
+- 書式は `devcontrol "backup::パターン::", slotmax [, size]`。本家(公式OpenHSP)でも文法は正しく、知らないコマンドとして `stat=-1` が返るだけ(画面は出ない)。
+- パターンに使える文字は 英数字・`_`・`-`・`.` と、**ちょうど1個の `*`**。`*` がスロット番号(10進、ゼロ埋めなし、`0`〜`slotmax-1`)。
+  `sog3sd*.dat` + `slotmax=20` なら `sog3sd0.dat`〜`sog3sd19.dat` だけが対象。`sog3sd05.dat` / `sog3sd20.dat` / `sog3sd0.dat.bak` / 無関係なファイルは、一覧にも出ず、読み書きもできない。
+- `slotmax` は 1〜256。`size` は省略または 0 で「検査しない」、1以上ならその大きさのファイルだけ取り込める(サイズ違いは拒否)。
+- 書き方が不正なときは画面を出さず `stat=-1`。閉じたときは `stat=0`。
+- 画面: 全部まとめて書き出し/読み込み、スロットごとの 書き出し/読み込み(空きスロットは「(空)」で、読み込みだけ可)。
+  取り込みは**スロットを選ぶ方式**なので、端末側でファイル名が変わっていても取り込める。
+- 取り込むと、元の内容を `<名前>.bak` に退避してから、**アプリが自動で再起動**する(ゲームのメモリ上のセーブで上書きされるのを防ぐため)。再起動までゲームは待ち続ける。
+- 全部まとめて書き出すJSONは Web版と同じ形式(`hsp-web-save`)。パターンが違うバックアップは拒否する。
+- 仕組み: `native_patch.sh` が `devcontrol "backup::` を `backupshow`(`native_compat.hsp`)に置き換える。`backupshow` は画面を開いたあと、`await 50` と `devcontrol "backup_poll"` で閉じるまで待つ(広告の `admobshow16` と同じ作り)。
+  待っている間はアプリの音も一時停止する。置き換えられるのは、`devcontrol` の直後に文字列リテラルで書いた行だけ(コメント行は除く)。
+- 再起動は、別プロセス(`:restart`)の `RestartActivity` が本体のプロセスを止めてから起動し直す。再起動できなかったときは、8秒で待ちを解いてメッセージを出す。
+- 注意: 共有ストレージ版(allFilesAccess)でゲームが `/storage/emulated/0/` に保存している場合、この画面が見るのはアプリ内の保存フォルダなので、スロットが空に見える(従来のデバッグ用画面と同じ制限)。
+
+### 指3本長押し(デバッグ用)の有効/無効
+- 指3本の長押しで開く従来の画面は、**apk では有効、aab では無効**。CIが gradle に `-PgestureBackup=1`(apk) / `-PgestureBackup=0`(aab) を渡して、apk と aab を別々の gradle 実行で作る。
+- `app/build.gradle` が `manifestPlaceholders` 経由で `AndroidManifest.xml` の `tv.hsp.gestureBackup` に入れ、`HspActivity` が読む。指定しない(手元のビルドなど)ときは有効。

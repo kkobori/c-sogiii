@@ -130,8 +130,23 @@ public class HspActivity extends NativeActivity {
     super.onBackPressed();
   }
 
-  // セーブデータのバックアップ画面。ネイティブ側(main.cpp)が指3本の長押しを検出して呼ぶ
+  // ユーザー向けバックアップ画面: devcontrol "backup::パターン::", slotmax, size (hsp3ext_ndk.cpp から)
+  public int backupOpen( String cmd, int slotmax, int size ) { return BackupWindow.open( this, cmd, slotmax, size ); }
+  public int backupPoll( int v ) { return BackupWindow.poll(); }
+
+  // 指3本長押しのデバッグ用バックアップ画面を許すか。gradle の -PgestureBackup=0 (aab のビルド) では許さない
+  private boolean gestureBackupEnabled() {
+    try {
+      android.content.pm.ApplicationInfo ai = getPackageManager().getApplicationInfo( getPackageName(), android.content.pm.PackageManager.GET_META_DATA );
+      Object o = ( ai.metaData != null ) ? ai.metaData.get( "tv.hsp.gestureBackup" ) : null;
+      if ( o == null ) return true;
+      return !"0".equals( String.valueOf( o ).trim() );
+    } catch ( Throwable t ) { return true; }
+  }
+
+  // セーブデータのバックアップ画面(デバッグ用)。ネイティブ側(main.cpp)が指3本の長押しを検出して呼ぶ
   public int saveToolsOpen( int v ) {
+    if ( !gestureBackupEnabled() || BackupWindow.isActive() ) return 0;
     final HspActivity act = this;
     runOnUiThread( new Runnable() {
       public void run() {
@@ -144,6 +159,7 @@ public class HspActivity extends NativeActivity {
   @SuppressWarnings("deprecation")
   @Override
   protected void onActivityResult( int requestCode, int resultCode, Intent data ) {
+    if ( BackupWindow.onResult( this, requestCode, resultCode, data ) ) return;
     if ( SaveTools.onResult( this, requestCode, resultCode, data ) ) return;
     super.onActivityResult( requestCode, resultCode, data );
   }

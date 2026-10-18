@@ -91,20 +91,20 @@ public class SaveTools {
         } finally { in.close(); }
         return bo.toByteArray();
     }
-    private static byte[] readFile(File f) throws IOException { return readAll(new FileInputStream(f)); }
-    private static byte[] readUri(Activity act, Uri u) throws IOException {
+    static byte[] readFile(File f) throws IOException { return readAll(new FileInputStream(f)); }
+    static byte[] readUri(Activity act, Uri u) throws IOException {
         InputStream in = act.getContentResolver().openInputStream(u);
         if (in == null) throw new IOException("ファイルを開けません");
         return readAll(in);
     }
-    private static void writeUri(Activity act, Uri u, byte[] data) throws IOException {
+    static void writeUri(Activity act, Uri u, byte[] data) throws IOException {
         OutputStream os = act.getContentResolver().openOutputStream(u, "wt");
         if (os == null) throw new IOException("書き込み先を開けません");
         try { os.write(data); os.flush(); } finally { os.close(); }
     }
 
     /** 保存フォルダへ書く。一度別名で書いてから差し替える。元の内容は .bak に退避。 */
-    private static void importBytes(Activity act, String name, byte[] data) throws IOException {
+    static void importBytes(Activity act, String name, byte[] data) throws IOException {
         if (!okName(name)) throw new IOException("使えないファイル名: " + name);
         File dir = act.getFilesDir();
         File dst = new File(dir, name), tmp = new File(dir, name + ".importing");
@@ -122,7 +122,7 @@ public class SaveTools {
         Log.i(TAG, "import " + name + " " + data.length + "B");
     }
 
-    private static String displayName(Activity act, Uri u) {
+    static String displayName(Activity act, Uri u) {
         Cursor c = null;
         try {
             c = act.getContentResolver().query(u, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null);
@@ -135,27 +135,27 @@ public class SaveTools {
         return i >= 0 ? s.substring(i + 1) : s;
     }
 
-    private static String mimeFor(String name) {
+    static String mimeFor(String name) {
         String n = name.toLowerCase(Locale.US);
         if (n.endsWith(".txt")) return "text/plain";
         if (n.endsWith(".json")) return "application/json";
         return "application/octet-stream";
     }
 
-    private static String stamp(String pattern, boolean utc) {
+    static String stamp(String pattern, boolean utc) {
         SimpleDateFormat f = new SimpleDateFormat(pattern, Locale.US);
         if (utc) f.setTimeZone(TimeZone.getTimeZone("UTC"));
         return f.format(new Date());
     }
 
     /* ------------------------------------------------------------ 画面 */
-    private static void toast(Activity act, String s) { Toast.makeText(act, s, Toast.LENGTH_LONG).show(); }
-    private static int dp(Activity act, int v) { return (int) (v * act.getResources().getDisplayMetrics().density + 0.5f); }
+    static void toast(Activity act, String s) { Toast.makeText(act, s, Toast.LENGTH_LONG).show(); }
+    static int dp(Activity act, int v) { return (int) (v * act.getResources().getDisplayMetrics().density + 0.5f); }
 
-    private static TextView label(Activity act, String s, int sp, int color) {
+    static TextView label(Activity act, String s, int sp, int color) {
         TextView t = new TextView(act); t.setText(s); t.setTextSize(sp); t.setTextColor(color); return t;
     }
-    private static Button button(Activity act, String s, View.OnClickListener l) {
+    static Button button(Activity act, String s, View.OnClickListener l) {
         Button b = new Button(act); b.setText(s); b.setAllCaps(false); b.setTextSize(13); b.setOnClickListener(l); return b;
     }
 

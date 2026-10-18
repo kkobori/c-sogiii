@@ -67,6 +67,23 @@ static int hsp3dish_devcontrol( char *cmd, int p1, int p2, int p3 )
 		j_clearWindowFlag( p1 );
 		return 0;
 	}
+	//	Save-data backup window: devcontrol "backup::pattern::", slotmax, size
+	//	(not in the official runtime, where unknown commands just return -1.
+	//	 On the HSP side, backupshow in native_compat.hsp waits until the window is closed)
+	if ( strncmp( cmd, "backup::", 8 )==0 ) {
+		return j_backupOpen( cmd, p1, p2 );
+	}
+	if ( strcmp( cmd, "backup_poll" )==0 ) {
+		//	2 while the window is open. Sounds are paused while it is open (same mechanism as ads)
+		static int bk_held = 0;
+		int res = j_backupPoll();
+		if ( res == 2 ) {
+			if ( !bk_held ) { bk_held = 1; hsp3extcmd_adaudio( 1 ); }
+		} else if ( bk_held ) {
+			bk_held = 0; hsp3extcmd_adaudio( 0 );
+		}
+		return res;
+	}
 	if ( strcmp( cmd, "AdMob" )==0 ) {
 		int res = j_callAdMob( p1 );
 		if ( p1 == 19 ) {

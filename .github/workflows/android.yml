@@ -82,15 +82,18 @@ jobs:
           chmod +x gradlew
           if [ "$ALLFILES" = "1" ]; then
             # 共有ストレージ版: apk にだけ MANAGE_EXTERNAL_STORAGE を付ける(aab には付けない)
+            # 指3本長押しのバックアップ画面(デバッグ用): apk は有効(-PgestureBackup=1)、aab は無効(=0)
             python3 ../tools/manifest_perm.py add app/src/main/AndroidManifest.xml
-            ./gradlew assembleRelease --no-daemon
+            ./gradlew assembleRelease --no-daemon -PgestureBackup=1
             python3 ../tools/manifest_perm.py remove app/src/main/AndroidManifest.xml
-            if [ "$BUILDAAB" = "1" ]; then ./gradlew bundleRelease --no-daemon; else echo "aab は作りません(buildAab=false)"; fi
+            if [ "$BUILDAAB" = "1" ]; then ./gradlew bundleRelease --no-daemon -PgestureBackup=0; else echo "aab は作りません(buildAab=false)"; fi
           elif [ "$BUILDAAB" = "1" ]; then
-            ./gradlew assembleRelease bundleRelease --no-daemon
+            # apk と aab は別々のgradle実行にする(指3本長押しの有効/無効を、ビルドごとに切り替えるため)
+            ./gradlew assembleRelease --no-daemon -PgestureBackup=1
+            ./gradlew bundleRelease --no-daemon -PgestureBackup=0
           else
             echo "aab は作りません(buildAab=false)"
-            ./gradlew assembleRelease --no-daemon
+            ./gradlew assembleRelease --no-daemon -PgestureBackup=1
           fi
       - uses: actions/upload-artifact@v4
         with:

@@ -3,6 +3,7 @@
 
 
     <application
+        android:name="tv.hsp.HspApp"
         android:allowBackup="true"
         android:enableOnBackInvokedCallback="false"
         android:fullBackupContent="@xml/backup_rules"
@@ -12,7 +13,16 @@
         android:supportsRtl="true">
         <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}"/>
+        <meta-data android:name="tv.hsp.gestureBackup"
+            android:value="${gestureBackup}"/>
         <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+        <!-- バックアップ画面の取り込み後にアプリを作り直すための、別プロセスの中継画面 -->
+        <activity android:name="tv.hsp.RestartActivity"
+            android:process=":restart"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
         <activity android:name="tv.hsp.HspActivity"
             android:exported="true"
             android:resizeableActivity="false"
